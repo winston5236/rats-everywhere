@@ -1,0 +1,2318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Grid-Based Home Rodent Defense System — Live 3D Monitor</title>
+<meta name="description" content="36x36x36 3D grid rat tracking, dynamic route planning, and acoustic deterrence concept demo" />
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f4f6f9; --bg-2:#ffffff; --panel:#ffffff; --panel-2:#eef1f6;
+    --border:#dadce0; --border-strong:#9aa0a6;
+    --text:#202124; --text-dim:#5f6368; --text-faint:#80868b;
+    --blue:#1a73e8; --blue-dim:rgba(26,115,232,.10);
+    --amber:#e37400; --amber-dim:rgba(227,116,0,.12);
+    --red:#d93025; --red-dim:rgba(217,48,37,.12);
+    --green:#188038; --green-dim:rgba(24,128,56,.14);
+    --chrome:#202124; --chrome-deep:#16181c;
+    --font-display:'Roboto',sans-serif;
+    --font-body:'Roboto',sans-serif;
+    --font-mono:'Roboto Mono',monospace;
+    --radius:8px;
+    --radius-lg:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;overflow:hidden;}
+  ::selection{background:var(--blue-dim); color:var(--blue);}
+  button,select,input{font-family:var(--font-body);font-size:12.5px;letter-spacing:.01em;}
+  button,select{background:var(--panel-2);color:var(--text-dim);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;cursor:pointer;transition:.15s;font-weight:500;}
+  button:hover,select:hover{color:var(--text);border-color:var(--border-strong);background:#fff;box-shadow:0 1px 2px rgba(60,64,67,.15);}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  button.active{color:var(--blue);border-color:var(--blue);background:var(--blue-dim);}
+  button.small{padding:2px 7px;font-size:10.5px;line-height:1.4;}
+  button.mini{padding:0 5px;font-size:10px;line-height:1.6;margin-left:2px;}
+  button.danger{color:var(--red);}
+  label.toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:12.5px;color:rgba(255,255,255,.92);letter-spacing:.01em;cursor:pointer;user-select:none;}
+  label.toggle input{accent-color:#fff;}
+  input[type=number]{width:56px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:4px 6px;color:var(--text);font-family:var(--font-mono);}
+  input[type=range]{accent-color:var(--blue);width:100%;}
+  input[type=text],input[type=password]{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;color:var(--text);font-family:var(--font-body);}
+
+  #app{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;}
+
+  .topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.1);background:var(--chrome);z-index:30;flex-wrap:wrap;box-shadow:0 1px 3px rgba(60,64,67,.2);}
+  .brand{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;min-width:0;}
+  .brand .mark{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 7px;border-radius:var(--radius);white-space:nowrap;background:rgba(255,255,255,.16);}
+  .brand h1{font-family:var(--font-display);font-weight:600;font-size:17px;margin:0;letter-spacing:0;white-space:nowrap;color:#fff;}
+  .brand .sub{font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.78);letter-spacing:.01em;white-space:nowrap;}
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .controls .group{display:flex;align-items:center;gap:6px;}
+  .controls .sep{width:1px;height:16px;background:rgba(255,255,255,.32);}
+
+  .layout{flex:1 1 auto;display:flex;min-height:0;}
+  #viewport{position:relative;flex:1 1 auto;min-width:0;background:radial-gradient(ellipse at 50% 15%, #ffffff 0%, var(--bg) 70%);}
+  #viewport canvas{display:block;}
+
+  .overlay{position:absolute;pointer-events:none;z-index:5;font-family:var(--font-body);}
+  .status-chip{top:12px;left:12px;position:absolute;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border:1px solid var(--border);padding:7px 12px;border-radius:var(--radius);font-size:12px;letter-spacing:.02em;backdrop-filter:blur(3px);box-shadow:0 1px 3px rgba(60,64,67,.12);}
+  .status-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 6px var(--blue);}
+  .status-chip.alert .dot{background:var(--amber);box-shadow:0 0 6px var(--amber);}
+  .status-chip.captured .dot{background:var(--green);box-shadow:0 0 6px var(--green);}
+  #status-label{color:var(--text);font-weight:600;}
+  #status-sub{color:var(--text-faint);}
+
+  .legend{bottom:12px;left:12px;position:absolute;background:rgba(255,255,255,.92);border:1px solid var(--border);padding:9px 12px;border-radius:var(--radius);font-size:11px;color:var(--text-dim);letter-spacing:.01em;display:flex;flex-direction:column;gap:5px;backdrop-filter:blur(3px);box-shadow:0 1px 3px rgba(60,64,67,.12);}
+  .legend .row{display:flex;align-items:center;gap:7px;}
+  .legend .swatch{width:9px;height:9px;border-radius:2px;flex:0 0 auto;}
+
+  .coord-readout{bottom:12px;right:12px;position:absolute;background:rgba(255,255,255,.92);border:1px solid var(--border);padding:8px 12px;border-radius:var(--radius);font-size:11px;font-family:var(--font-mono);color:var(--text-dim);letter-spacing:.01em;text-align:right;backdrop-filter:blur(3px);box-shadow:0 1px 3px rgba(60,64,67,.12);}
+  .coord-readout b{color:var(--blue);font-weight:700;}
+
+  .label3d{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.02em;color:var(--text-dim);background:rgba(255,255,255,.9);border:1px solid var(--border);padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;}
+  .label3d.tag-blue{color:var(--blue);border-color:rgba(26,115,232,.35);}
+  .label3d.tag-amber{color:var(--amber);border-color:rgba(227,116,0,.35);}
+  .label3d.tag-green{color:var(--green);border-color:rgba(24,128,56,.35);}
+
+  /* ---- consolidated tabbed editor popup ---- */
+  .editor-toggle{white-space:nowrap;}
+  .editor-panel{
+    position:absolute; top:12px; right:12px; width:290px; max-height:calc(100% - 24px);
+    background:var(--chrome); border:1px solid rgba(255,255,255,.1); border-radius:var(--radius-lg);
+    box-shadow:0 4px 6px rgba(60,64,67,.12), 0 8px 24px rgba(60,64,67,.22); z-index:20; pointer-events:auto;
+    display:none; flex-direction:column; overflow:hidden;
+  }
+  .editor-panel.open{display:flex;}
+
+  .account-status{font-family:var(--font-body);font-size:12.5px;color:rgba(255,255,255,.92);letter-spacing:.01em;white-space:nowrap;}
+  .account-panel{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%); width:290px;
+    background:var(--chrome); border:1px solid rgba(255,255,255,.1); border-radius:var(--radius-lg);
+    box-shadow:0 4px 6px rgba(60,64,67,.12), 0 8px 24px rgba(60,64,67,.22); z-index:25; pointer-events:auto;
+    display:none; flex-direction:column; overflow:hidden;
+  }
+  .account-panel.open{display:flex;}
+  .hidden{display:none !important;}
+  .editor-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.2);background:var(--chrome-deep);border-radius:var(--radius-lg) var(--radius-lg) 0 0;}
+  .tabs{display:flex;flex:1 1 auto;}
+  .tab-btn{flex:1 1 auto;background:transparent;border:none;border-radius:0;padding:10px 4px;font-size:10.5px;font-family:var(--font-body);font-weight:500;letter-spacing:.02em;color:rgba(255,255,255,.72);border-bottom:2px solid transparent;}
+  .tab-btn.active{color:#fff;border-bottom:2px solid #fff;background:rgba(255,255,255,.14);}
+  .editor-close{border:none;background:transparent;padding:9px 12px;color:rgba(255,255,255,.75);border-radius:0;}
+  .editor-close:hover{color:#fff;background:rgba(255,255,255,.14);border:none;box-shadow:none;}
+  .editor-body{padding:12px;overflow-y:auto;font-family:var(--font-body);}
+  .tab-panel.hidden{display:none;}
+
+  .palette{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
+  .palette-item{display:flex;flex-direction:column;align-items:center;gap:4px;width:60px;padding:7px 4px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;cursor:grab;font-size:10px;font-family:var(--font-body);color:var(--text-dim);text-align:center;user-select:none;transition:.15s;}
+  .palette-item:hover{border-color:var(--blue);box-shadow:0 1px 3px rgba(60,64,67,.14);}
+  .palette-item:active{cursor:grabbing;}
+  .palette-item .swatch{width:22px;height:15px;border-radius:3px;margin-bottom:1px;}
+  .placed-list{max-height:190px;overflow-y:auto;border-top:1px solid rgba(255,255,255,.28);padding-top:8px;}
+  .placed-row{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;font-size:11px;font-family:var(--font-body);color:var(--text-dim);padding:8px 9px;margin-bottom:6px;background:#fff;border-radius:var(--radius);box-shadow:0 1px 2px rgba(60,64,67,.1);cursor:pointer;border:1.5px solid transparent;transition:.15s;}
+  .placed-row:hover{box-shadow:0 1px 4px rgba(60,64,67,.2);}
+  .placed-row.selected{border-color:var(--blue);background:var(--blue-dim);}
+  .placed-row:last-child{margin-bottom:0;}
+  .placed-row .lbl{color:var(--text);}
+  .placed-row .dims{margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;font-family:var(--font-mono);}
+  .placed-row .dim{display:inline-flex;align-items:center;color:var(--text-faint);}
+  .placed-empty{font-size:11px;color:rgba(255,255,255,.8);padding:4px 0;}
+  .editor-hint{font-size:10px;color:rgba(255,255,255,.8);margin-top:7px;line-height:1.5;}
+
+  .predator-card{border:1px solid var(--border);border-radius:var(--radius);padding:9px;margin-bottom:9px;background:#fff;}
+  .predator-card.active{border-color:var(--blue);background:var(--blue-dim);}
+  .predator-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:12px;color:var(--text);font-weight:600;font-family:var(--font-body);}
+  .predator-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-size:10.5px;font-family:var(--font-body);color:var(--text-dim);}
+  .predator-row label{flex:0 0 auto;}
+  .predator-row select{flex:1 1 auto;}
+  .predator-row .freqs{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);}
+  .account-panel .predator-row label{color:rgba(255,255,255,.88);}
+  #acc-current-name{color:#fff;}
+
+  /* ---- dashboard: small refreshing blocks ---- */
+  .dashboard{flex:0 0 250px;max-width:250px;border-left:1px solid rgba(255,255,255,.1);background:var(--chrome);overflow-y:auto;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;}
+  .block{border:1px solid var(--border);background:var(--panel);border-radius:var(--radius);padding:9px 10px;box-shadow:0 1px 2px rgba(60,64,67,.1);}
+  .block.wide{grid-column:1 / -1;}
+  .block .k{font-family:var(--font-body);font-size:10px;font-weight:500;letter-spacing:.02em;color:var(--text-faint);margin-bottom:4px;}
+  .block .v{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text);line-height:1.3;word-break:break-word;}
+  .block .v.blue{color:var(--blue);} .block .v.red{color:var(--red);} .block .v.green{color:var(--green);} .block .v.amber{color:var(--amber);}
+  .block .v.small{font-size:10.5px;font-weight:500;color:var(--text-dim);font-family:var(--font-body);}
+  .eff-bar{height:5px;border-radius:3px;background:var(--panel-2);margin-top:5px;overflow:hidden;}
+  .eff-bar i{display:block;height:100%;background:var(--amber);}
+
+  .statusbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:7px 16px;border-top:1px solid rgba(255,255,255,.1);background:var(--chrome-deep);font-family:var(--font-body);font-size:10.5px;color:rgba(255,255,255,.82);letter-spacing:.01em;}
+
+  .dashboard::-webkit-scrollbar,.placed-list::-webkit-scrollbar,.editor-body::-webkit-scrollbar{width:6px;}
+  .dashboard::-webkit-scrollbar-thumb,.placed-list::-webkit-scrollbar-thumb,.editor-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+  .rat-drag-handle{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid rgba(255,255,255,.4);border-radius:var(--radius);background:rgba(255,255,255,.16);color:#fff;cursor:grab;font-family:var(--font-body);font-size:12.5px;font-weight:500;letter-spacing:.01em;user-select:none;white-space:nowrap;}
+  .rat-drag-handle:active{cursor:grabbing;}
+
+  @media (max-width: 900px){
+    .layout{flex-direction:column;}
+    #viewport{flex:1 1 54vh;min-height:280px;}
+    .dashboard{flex:1 1 auto;max-width:none;border-left:none;border-top:1px solid var(--border);}
+    .brand .sub{display:none;}
+    .editor-panel{width:200px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">GRID 36×36×36</span>
+      <h1>Grid-Based Rodent Defense System</h1>
+      <span class="sub">LIVE 3D RAT TRACKING — ROUTE &amp; DETERRENCE</span>
+    </div>
+    <div class="controls">
+      <div class="group"><label class="toggle"><input type="checkbox" id="toggle-rotate" /> Auto-rotate</label></div>
+      <div class="sep"></div>
+      <div class="group">
+        <button id="btn-set-entrance">🚪 Set entrance</button>
+        <label class="toggle"><input type="checkbox" id="toggle-randomize" checked /> Randomize</label>
+      </div>
+      <div class="sep"></div>
+      <div class="group">
+        <span class="rat-drag-handle" draggable="true" data-drag="rat" title="Drag into the scene to manually set the rat's current position (for mock/testing purposes)">🐀 Drag rat</span>
+      </div>
+      <div class="sep"></div>
+      <div class="group">
+        <span class="toggle" style="cursor:default;">Speed</span>
+        <select id="speed-select">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+      <button id="btn-restart">↻ Restart simulation</button>
+      <button id="btn-random-stim">🎲 Random Stimulation</button>
+      <button id="btn-edit-scene" class="editor-toggle">🛠 Edit scene</button>
+      <div class="sep"></div>
+      <div class="group">
+        <span id="account-status" class="account-status">👤 Guest</span>
+        <button id="btn-account">Log in</button>
+        <button id="btn-save-setup" class="hidden">💾 Save</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div id="viewport">
+      <div class="overlay status-chip" id="status-chip">
+        <span class="dot"></span>
+        <span id="status-label">SCANNING</span>
+        <span id="status-sub">— patrolling, no subject</span>
+      </div>
+
+      <div class="overlay legend">
+        <div class="row"><span class="swatch" style="background:#188038"></span>Rat &amp; visited cells</div>
+        <div class="row"><span class="swatch" style="background:#d93025"></span>Ideal route (dynamic)</div>
+        <div class="row"><span class="swatch" style="background:#1a73e8"></span>Furniture &amp; humans</div>
+        <div class="row"><span class="swatch" style="background:#e37400"></span>Sound waves &amp; avoidance zones</div>
+      </div>
+
+      <div class="overlay coord-readout" id="coord-readout">GRID —&nbsp;&nbsp;X 0.00&nbsp;&nbsp;Z 0.00</div>
+
+      <div class="account-panel" id="account-panel">
+        <div class="editor-head">
+          <div class="tabs" style="flex:1;padding:10px 14px;color:var(--text);font-weight:600;font-size:11px;letter-spacing:.04em;">ACCOUNT</div>
+          <button class="editor-close" id="account-close">✕</button>
+        </div>
+        <div class="editor-body">
+          <div id="account-logged-out">
+            <div class="predator-row"><label>Username</label><input type="text" id="acc-username" style="width:150px" /></div>
+            <div class="predator-row"><label>Password</label><input type="password" id="acc-password" style="width:150px" /></div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button id="btn-login" class="small">Log in</button>
+              <button id="btn-register" class="small">Register</button>
+            </div>
+            <div class="editor-hint" id="account-msg"></div>
+            <div class="editor-hint">Accounts are stored only in this browser (localStorage) — this is not a real cloud system. For demos and personal testing only; don't use a real password.</div>
+          </div>
+          <div id="account-logged-in" class="hidden">
+            <div class="predator-row"><label>Current account</label><b id="acc-current-name">—</b></div>
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+              <button id="btn-manual-save" class="small">💾 Save setup</button>
+              <button id="btn-logout" class="small danger">Log out</button>
+            </div>
+            <div class="editor-hint" id="account-save-status">Not saved yet</div>
+            <div class="editor-hint">Furniture, humans, avoidance zones, sound settings, and entrance settings autosave to this account. Guest mode is not saved.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-panel" id="editor-panel">
+        <div class="editor-head">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="furniture">Furniture</button>
+            <button class="tab-btn" data-tab="humans">Humans</button>
+            <button class="tab-btn" data-tab="sound">Sound</button>
+            <button class="tab-btn" data-tab="zones">Zones</button>
+            <button class="tab-btn" data-tab="scan">Scan</button>
+          </div>
+          <button class="editor-close" id="editor-close">✕</button>
+        </div>
+        <div class="editor-body">
+          <div class="tab-panel" data-tabpanel="furniture">
+            <div class="palette">
+              <div class="palette-item" draggable="true" data-drag="furniture:sofa"><span class="swatch" style="background:#1a73e8"></span>Sofa</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:chair"><span class="swatch" style="background:#3b82f6"></span>Chair</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:light"><span class="swatch" style="background:#f5c518"></span>Light</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:shelf"><span class="swatch" style="background:#1d4ed8"></span>Shelf</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:window"><span class="swatch" style="background:#67c1d6"></span>Window</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:wall"><span class="swatch" style="background:#64748b"></span>Wall</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:bed"><span class="swatch" style="background:#6b8cae"></span>Bed</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:table"><span class="swatch" style="background:#a1662f"></span>Table</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:counter"><span class="swatch" style="background:#c9a876"></span>Counter</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:fridge"><span class="swatch" style="background:#8a94a0"></span>Fridge</div>
+              <div class="palette-item" draggable="true" data-drag="furniture:cabinet"><span class="swatch" style="background:#6b4423"></span>Cabinet</div>
+            </div>
+            <div class="placed-list" id="list-furniture"></div>
+            <div class="editor-hint">Drag an icon onto the scene to place it — a silhouette preview shows where it will land. Click a placed item (in the scene or in this list) to select it, then drag its colored handles to resize by edge, drag the top handle for height, or tap ⟳ to rotate 90°. +/− steppers still work too.</div>
+          </div>
+          <div class="tab-panel hidden" data-tabpanel="humans">
+            <div class="palette">
+              <div class="palette-item" draggable="true" data-drag="human"><span class="swatch" style="background:#334155"></span>Human</div>
+            </div>
+            <div class="placed-list" id="list-humans"></div>
+            <div class="editor-hint">Drag to place a person. The route planner takes their position into account.</div>
+          </div>
+          <div class="tab-panel hidden" data-tabpanel="sound">
+            <div id="sound-tab-content"></div>
+          </div>
+          <div class="tab-panel hidden" data-tabpanel="zones">
+            <div class="palette">
+              <div class="palette-item" draggable="true" data-drag="zone"><span class="swatch" style="background:#d93025"></span>Zone</div>
+            </div>
+            <div class="placed-list" id="list-zones"></div>
+            <div class="editor-hint">"Do not approach" areas — the rat's route strongly avoids these. Select a placed zone to drag-resize or rotate it, same as furniture.</div>
+          </div>
+          <div class="tab-panel hidden" data-tabpanel="scan">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="editor-hint" style="margin-top:0;">Upload a room scan to rebuild it here, using this site's own furniture and wall objects (same as placing them by hand — fully editable, resizable, rotatable, and pathfinding-aware).</div>
+              <button id="btn-import-scan-json" class="small">📤 Upload scan → rebuild with furniture &amp; walls (.json)</button>
+              <div class="editor-hint" style="margin-top:0;">This is the recognized-object data RoomPlan saves alongside the .usdz — walls, doors, windows, and furniture with real positions. It's what makes real, editable objects possible; a raw 3D mesh has no way to know "this is a chair."</div>
+              <button id="btn-import-scan-glb" class="small">🧊 Overlay raw scan mesh (.glb) — visual reference only</button>
+              <div class="editor-hint" style="margin-top:0;">Drops in the literal scanned geometry at partial opacity. Not editable and ignored by pathfinding — only use this if you want a visual reference to place things against by eye.</div>
+              <input type="file" id="scan-json-input" accept=".json" hidden />
+              <input type="file" id="scan-glb-input" accept=".glb,.gltf" hidden />
+              <div class="editor-hint" id="scan-status"><b>No scan imported yet.</b></div>
+              <div class="editor-hint">Scan a room with the companion iOS app (RoomPlan) to produce the .json (and optionally a converted .glb — see the app's README). Both load entirely in your browser via the file picker above — nothing is uploaded to a server.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="dashboard">
+      <div class="block wide"><div class="k">STATUS</div><div class="v blue" id="d-status">SCANNING</div></div>
+      <div class="block"><div class="k">CELL</div><div class="v" id="d-cell">—</div></div>
+      <div class="block"><div class="k">VELOCITY</div><div class="v" id="d-vel">0.00 m/s</div></div>
+      <div class="block"><div class="k">ENTRY</div><div class="v small" id="d-entry">—</div></div>
+      <div class="block"><div class="k">GOAL</div><div class="v small" id="d-goal">—</div></div>
+      <div class="block wide"><div class="k">IDEAL ROUTE</div><div class="v red" id="d-route">—</div></div>
+      <div class="block wide"><div class="k">ACTIVE SOUND</div><div class="v amber" id="d-sound">Owl</div></div>
+      <div class="block wide">
+        <div class="k">EFFECTIVENESS</div>
+        <div class="v amber" id="d-eff">—</div>
+        <div class="eff-bar"><i id="d-eff-bar" style="width:0%"></i></div>
+      </div>
+      <div class="block wide"><div class="k">SUGGESTED SOUND</div><div class="v small" id="d-suggest">No data yet</div></div>
+      <div class="block"><div class="k">FURNITURE</div><div class="v" id="d-furniture">0</div></div>
+      <div class="block"><div class="k">HUMANS</div><div class="v" id="d-humans">0</div></div>
+      <div class="block"><div class="k">ZONES</div><div class="v" id="d-zones">0</div></div>
+      <div class="block"><div class="k">VISITED</div><div class="v green" id="d-visited">0</div></div>
+      <div class="block wide"><div class="k">LATEST EVENT</div><div class="v small" id="d-event">—</div></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span>Urban Rat Control · Grid Defense Concept Demo</span>
+    <span id="clock">00:00:00</span>
+  </footer>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ============ CONFIG ============ */
+const GRID = 36, CELL = 0.3, WORLD = GRID * CELL;
+const ROOM_H = WORLD;
+const colLabel = c => { let s=''; c++; while(c>0){ const m=(c-1)%26; s=String.fromCharCode(65+m)+s; c=Math.floor((c-1)/26);} return s; };
+const cellLabel = (c,r) => `${colLabel(c)}-${r+1}`;
+function cellCenter(c,r){ return new THREE.Vector3(-WORLD/2+CELL*(c+0.5), 0, -WORLD/2+CELL*(r+0.5)); }
+function worldToCell(x,z){
+  let c = Math.floor((x+WORLD/2)/CELL);
+  let r = Math.floor((z+WORLD/2)/CELL);
+  c = Math.max(0, Math.min(GRID-1, c));
+  r = Math.max(0, Math.min(GRID-1, r));
+  return {c,r};
+}
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+
+/* ============ RENDERER / SCENE / CAMERA ============ */
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf4f6f9);
+scene.fog = new THREE.FogExp2(0xf4f6f9, 0.028);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(15, 13, 17);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0xf4f6f9, 1);
+viewport.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.style.position='absolute';
+labelRenderer.domElement.style.top='0';
+labelRenderer.domElement.style.left='0';
+labelRenderer.domElement.style.pointerEvents='none';
+viewport.appendChild(labelRenderer.domElement);
+
+function resize(){
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h); labelRenderer.setSize(w,h);
+}
+window.addEventListener('resize', resize);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 2, 0);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 5; controls.maxDistance = 36;
+controls.maxPolarAngle = Math.PI * 0.49;
+
+/* ============ LIGHTING ============ */
+scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+const key = new THREE.DirectionalLight(0xffffff, 0.55);
+key.position.set(10, 16, 8);
+scene.add(key);
+const rim = new THREE.PointLight(0x1a73e8, 0.35, 26);
+rim.position.set(-6, 6, -6);
+scene.add(rim);
+
+const roomGroup = new THREE.Group();
+scene.add(roomGroup);
+
+/* ============ ROOM SHELL — high contrast bounding box on all axes ============ */
+{
+  const boxGeo = new THREE.BoxGeometry(WORLD, ROOM_H, WORLD);
+  const edges = new THREE.EdgesGeometry(boxGeo);
+  const shell = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color:0x0f172a, transparent:true, opacity:0.85 }));
+  shell.position.y = ROOM_H/2;
+  roomGroup.add(shell);
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(WORLD, WORLD), new THREE.MeshBasicMaterial({ color:0xffffff }));
+  floor.rotation.x = -Math.PI/2; floor.position.y = -0.005;
+  roomGroup.add(floor);
+}
+function buildGridLines(plane){
+  const pts = [];
+  const major = c => c % 6 === 0;
+  for (let i=0;i<=GRID;i++){
+    const p = -WORLD/2 + i*CELL;
+    const isMajor = major(i);
+    if (plane === 'floor'){
+      pts.push([p,0,-WORLD/2, p,0,WORLD/2, isMajor]);
+      pts.push([-WORLD/2,0,p, WORLD/2,0,p, isMajor]);
+    } else if (plane === 'wallX'){
+      pts.push([-WORLD/2,0,p, -WORLD/2,ROOM_H,p, isMajor]);
+      pts.push([-WORLD/2,p+WORLD/2,-WORLD/2, -WORLD/2,p+WORLD/2,WORLD/2, isMajor]);
+    } else if (plane === 'wallZ'){
+      pts.push([p,0,-WORLD/2, p,ROOM_H,-WORLD/2, isMajor]);
+      pts.push([-WORLD/2,p+WORLD/2,-WORLD/2, WORLD/2,p+WORLD/2,-WORLD/2, isMajor]);
+    }
+  }
+  const minorPos=[], majorPos=[];
+  pts.forEach(([x1,y1,z1,x2,y2,z2,isMajor])=>{ (isMajor?majorPos:minorPos).push(x1,y1,z1,x2,y2,z2); });
+  const group = new THREE.Group();
+  const minorGeo = new THREE.BufferGeometry();
+  minorGeo.setAttribute('position', new THREE.Float32BufferAttribute(minorPos,3));
+  group.add(new THREE.LineSegments(minorGeo, new THREE.LineBasicMaterial({ color:0xb9c2d1, transparent:true, opacity:0.6 })));
+  const majorGeo = new THREE.BufferGeometry();
+  majorGeo.setAttribute('position', new THREE.Float32BufferAttribute(majorPos,3));
+  group.add(new THREE.LineSegments(majorGeo, new THREE.LineBasicMaterial({ color:0x475569, transparent:true, opacity:0.85 })));
+  return group;
+}
+roomGroup.add(buildGridLines('floor'));
+roomGroup.add(buildGridLines('wallX'));
+roomGroup.add(buildGridLines('wallZ'));
+
+function makeLabel(text, cls){
+  const div = document.createElement('div');
+  div.className = 'label3d' + (cls?(' '+cls):'');
+  div.textContent = text;
+  return new CSS2DObject(div);
+}
+
+/* ============ ITEM DEFINITIONS (furniture + avoidance zones share a renderer) ============ */
+/* 'climbable' furniture (sofa/chair/shelf) never blocks the rat — it runs up and across
+   the top surface (heightGrid). 'blocking' furniture (walls) is a true hard obstacle —
+   the rat cannot climb over it regardless of height, only route around it via adjacent
+   cells (left/right). Only walls and humans are hard-blocked; everything else is either
+   climbable terrain or purely decorative (lights/windows, ignored for movement). */
+const ITEM_DEFS = {
+  sofa:    { label:'Sofa',    cat:'furniture', L:3, W:2, H:2, color:0x1a73e8, opacity:0.86, climbable:true,  blocking:false, elevate:'floor' },
+  chair:   { label:'Chair',   cat:'furniture', L:1, W:1, H:2, color:0x3b82f6, opacity:0.86, climbable:true,  blocking:false, elevate:'floor' },
+  light:   { label:'Light',   cat:'furniture', L:1, W:1, H:1, color:0xf5c518, opacity:0.9,  climbable:false, blocking:false, elevate:'ceiling' },
+  shelf:   { label:'Shelf',   cat:'furniture', L:1, W:3, H:6, color:0x1d4ed8, opacity:0.86, climbable:true,  blocking:false, elevate:'floor' },
+  window:  { label:'Window',  cat:'furniture', L:1, W:4, H:4, color:0x67c1d6, opacity:0.35, climbable:false, blocking:false, elevate:'mid' },
+  wall:    { label:'Wall',    cat:'furniture', L:5, W:1, H:8, color:0x64748b, opacity:0.92, climbable:false, blocking:true,  elevate:'floor' },
+  bed:     { label:'Bed',     cat:'furniture', L:7, W:4, H:3, color:0x6b8cae, opacity:0.9,  climbable:true,  blocking:false, elevate:'floor' },
+  table:   { label:'Table',   cat:'furniture', L:4, W:3, H:3, color:0xa1662f, opacity:0.9,  climbable:true,  blocking:false, elevate:'floor' },
+  counter: { label:'Counter', cat:'furniture', L:4, W:2, H:3, color:0xc9a876, opacity:0.9,  climbable:true,  blocking:false, elevate:'floor' },
+  fridge:  { label:'Fridge',  cat:'furniture', L:2, W:2, H:6, color:0x8a94a0, opacity:0.92, climbable:true,  blocking:false, elevate:'floor' },
+  cabinet: { label:'Cabinet', cat:'furniture', L:3, W:2, H:5, color:0x6b4423, opacity:0.9,  climbable:true,  blocking:false, elevate:'floor' },
+  zone:    { label:'Zone',    cat:'zone',      L:3, W:3, H:4, color:0xd93025, opacity:0.14, climbable:false, blocking:false, elevate:'floor', costOwn:60, costRing:15 },
+};
+
+let uid = 1;
+const placedItems = [];   // furniture + zones
+const humanItems = [];
+
+function clampFootprint(col,row,L,W){
+  col = clamp(col, 0, GRID-L);
+  row = clamp(row, 0, GRID-W);
+  return {col,row};
+}
+/* footprint dimensions in grid units, accounting for 90/270 rotation swapping L<->W */
+function footprintDims(item){
+  const rot = ((item.rot||0)%360+360)%360;
+  return (rot===90 || rot===270) ? { fl:item.W, fw:item.L } : { fl:item.L, fw:item.W };
+}
+/* recover a grid anchor (col,row) from a desired world-space footprint center */
+function centerToAnchor(item, cx, cz){
+  const dims = footprintDims(item);
+  const col = Math.round((cx+WORLD/2)/CELL - dims.fl/2);
+  const row = Math.round((cz+WORLD/2)/CELL - dims.fw/2);
+  return { col, row };
+}
+/* rotate in place — keeps the item's footprint centered as closely as possible */
+function rotateItem(item, deltaDeg){
+  const before = footprintDims(item);
+  const centerCol = item.col + before.fl/2;
+  const centerRow = item.row + before.fw/2;
+  item.rot = (((item.rot||0) + deltaDeg) % 360 + 360) % 360;
+  const after = footprintDims(item);
+  item.col = Math.round(centerCol - after.fl/2);
+  item.row = Math.round(centerRow - after.fw/2);
+  const fp = clampFootprint(item.col, item.row, after.fl, after.fw);
+  item.col = fp.col; item.row = fp.row;
+}
+
+/* ---- procedural per-type furniture "models" (built from primitives, not shared boxes) ---- */
+function clearGroup(group){
+  while (group.children.length){
+    const child = group.children.pop();
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) child.material.dispose();
+    group.remove(child);
+  }
+}
+function addBoxPart(group, w,h,d, color, x,y,z, opts={}){
+  const geo = new THREE.BoxGeometry(Math.max(w,0.004), Math.max(h,0.004), Math.max(d,0.004));
+  const mat = new THREE.MeshStandardMaterial({ color, transparent:true, opacity: opts.opacity ?? 0.86, roughness: opts.roughness ?? 0.82, side: opts.doubleSide ? THREE.DoubleSide : THREE.FrontSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x,y,z);
+  group.add(mesh);
+  if (!opts.noEdges){
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: opts.edgeColor ?? 0x0f172a, transparent:true, opacity:0.5 }));
+    edges.position.copy(mesh.position);
+    group.add(edges);
+  }
+  return mesh;
+}
+function addCylPart(group, radiusTop, radiusBottom, height, color, x,y,z, opts={}){
+  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, opts.segments||10);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.7 }));
+  mesh.position.set(x,y,z);
+  group.add(mesh);
+  return mesh;
+}
+function baseY(def, sy){
+  if (def.elevate === 'ceiling') return ROOM_H - sy - CELL*0.4;
+  if (def.elevate === 'mid') return ROOM_H*0.5 - sy/2;
+  return 0;
+}
+/* parts are built bottom-anchored: local y in [0,sy], x in [-sx/2,sx/2], z in [-sz/2,sz/2] */
+function buildFurnitureParts(group, type, sx, sy, sz, color){
+  if (type === 'sofa'){
+    addBoxPart(group, sx, sy*0.42, sz, color, 0, sy*0.21, 0);
+    addBoxPart(group, sx, sy*0.58, sz*0.2, color, 0, sy*0.71, -sz/2+sz*0.1);
+    addBoxPart(group, sx*0.14, sy*0.5, sz, color, -sx/2+sx*0.07, sy*0.5, 0);
+    addBoxPart(group, sx*0.14, sy*0.5, sz, color, sx/2-sx*0.07, sy*0.5, 0);
+  } else if (type === 'chair'){
+    addBoxPart(group, sx*0.86, sy*0.1, sz*0.86, color, 0, sy*0.42, 0);
+    addBoxPart(group, sx*0.86, sy*0.5, sz*0.12, color, 0, sy*0.72, -sz/2+sz*0.07);
+    const legR = Math.max(0.012, Math.min(sx,sz)*0.05);
+    const legH = sy*0.42;
+    const lx = sx*0.36, lz = sz*0.36;
+    [[-lx,-lz],[lx,-lz],[-lx,lz],[lx,lz]].forEach(([ex,ez])=>{
+      addCylPart(group, legR, legR, legH, 0x334155, ex, legH/2, ez);
+    });
+  } else if (type === 'light'){
+    const stemR = Math.max(0.008, Math.min(sx,sz)*0.06);
+    const stemH = sy*0.65;
+    addCylPart(group, stemR, stemR, stemH, 0x334155, 0, sy - stemH/2, 0);
+    const shadeR = Math.max(sx,sz)*0.42;
+    const shade = new THREE.Mesh(
+      new THREE.ConeGeometry(shadeR, sy*0.32, 16, 1, true),
+      new THREE.MeshStandardMaterial({ color, emissive:0x5a4415, roughness:0.4, side:THREE.DoubleSide })
+    );
+    shade.position.set(0, sy*0.16, 0);
+    group.add(shade);
+  } else if (type === 'shelf'){
+    const postT = Math.max(0.02, sx*0.14);
+    addBoxPart(group, postT, sy, postT, color, -sx/2+postT/2, sy/2, -sz/2+postT/2);
+    addBoxPart(group, postT, sy, postT, color, -sx/2+postT/2, sy/2, sz/2-postT/2);
+    addBoxPart(group, postT, sy, postT, color, sx/2-postT/2, sy/2, -sz/2+postT/2);
+    addBoxPart(group, postT, sy, postT, color, sx/2-postT/2, sy/2, sz/2-postT/2);
+    const levels = Math.max(2, Math.min(6, Math.round(sy/(CELL*1.15))));
+    const boardT = Math.max(0.012, sy/levels*0.18);
+    for (let i=0;i<levels;i++){
+      addBoxPart(group, sx, boardT, sz, color, 0, (i+0.5)/levels*sy, 0);
+    }
+  } else if (type === 'window'){
+    const frameT = Math.max(0.02, Math.min(sy,sz)*0.08);
+    addBoxPart(group, sx, frameT, sz, 0x475569, 0, sy-frameT/2, 0);
+    addBoxPart(group, sx, frameT, sz, 0x475569, 0, frameT/2, 0);
+    addBoxPart(group, sx, sy, frameT, 0x475569, 0, sy/2, -sz/2+frameT/2);
+    addBoxPart(group, sx, sy, frameT, 0x475569, 0, sy/2, sz/2-frameT/2);
+    const mullT = frameT*0.7;
+    addBoxPart(group, sx, mullT, sz, 0x64748b, 0, sy/2, 0);
+    addBoxPart(group, sx, sy, mullT, 0x64748b, 0, sy/2, 0);
+    addBoxPart(group, sx*0.4, sy*0.86, sz*0.86, color, 0, sy/2, 0, { opacity:0.28, doubleSide:true, noEdges:true });
+  } else if (type === 'bed'){
+    addBoxPart(group, sx, sy*0.18, sz, 0x5c4a3a, 0, sy*0.09, 0);
+    addBoxPart(group, sx*0.94, sy*0.32, sz*0.94, color, 0, sy*0.18+sy*0.16, 0);
+    addBoxPart(group, sx*0.06, sy, sz, 0x5c4a3a, -sx/2+sx*0.03, sy/2, 0);
+    addBoxPart(group, sx*0.22, sy*0.14, sz*0.7, 0xf5f2ea, -sx/2+sx*0.18, sy*0.18+sy*0.32+sy*0.07, 0);
+  } else if (type === 'table'){
+    addBoxPart(group, sx, sy*0.08, sz, color, 0, sy*0.92, 0);
+    const legR = Math.max(0.014, Math.min(sx,sz)*0.045);
+    const legH = sy*0.88;
+    const lx = sx*0.42, lz = sz*0.42;
+    [[-lx,-lz],[lx,-lz],[-lx,lz],[lx,lz]].forEach(([ex,ez])=>{
+      addCylPart(group, legR, legR, legH, 0x3a2a1a, ex, legH/2, ez);
+    });
+  } else if (type === 'counter'){
+    addBoxPart(group, sx*0.96, sy*0.85, sz*0.96, 0xd9d2c4, 0, sy*0.425, 0);
+    addBoxPart(group, sx, sy*0.12, sz, color, 0, sy*0.85+sy*0.06, 0);
+  } else if (type === 'fridge'){
+    addBoxPart(group, sx, sy, sz, color, 0, sy/2, 0);
+    addBoxPart(group, sx*1.001, sy*0.02, sz*1.001, 0x2b2f33, 0, sy*0.32, 0, { noEdges:true });
+    const handleR = Math.max(0.01, sx*0.04);
+    addCylPart(group, handleR, handleR, sy*0.4, 0x2b2f33, sx*0.42, sy*0.55, sz/2+0.012);
+  } else if (type === 'cabinet'){
+    addBoxPart(group, sx, sy, sz, color, 0, sy/2, 0);
+    addBoxPart(group, sx*0.98, sy*0.98, 0.006, 0x2b2f33, 0, sy/2, sz/2+0.003, { noEdges:true });
+    const knobS = Math.max(0.012, Math.min(sx,sz)*0.05);
+    addBoxPart(group, knobS, knobS, knobS, 0x2b2f33, -sx*0.12, sy*0.5, sz/2+knobS/2, { noEdges:true });
+    addBoxPart(group, knobS, knobS, knobS, 0x2b2f33, sx*0.12, sy*0.5, sz/2+knobS/2, { noEdges:true });
+  } else {
+    /* wall (and any other flat/solid item) — a plain slab is correct for a wall */
+    addBoxPart(group, sx, sy, sz, color, 0, sy/2, 0);
+  }
+}
+function refreshItemMesh(item){
+  const def = ITEM_DEFS[item.type];
+  if (!item.mesh){
+    item.mesh = new THREE.Group();
+    roomGroup.add(item.mesh);
+  } else {
+    clearGroup(item.mesh);
+  }
+  const sx = item.L*CELL, sy = item.H*CELL, sz = item.W*CELL;
+  buildFurnitureParts(item.mesh, item.type, sx, sy, sz, def.color);
+  if (item.type === 'light') item.mesh.add(new THREE.PointLight(0xffe9b0, 0.5, 4));
+  const dims = footprintDims(item);
+  const cx = -WORLD/2 + CELL*(item.col + dims.fl/2);
+  const cz = -WORLD/2 + CELL*(item.row + dims.fw/2);
+  item.mesh.position.set(cx, baseY(def, sy), cz);
+  item.mesh.rotation.y = THREE.MathUtils.degToRad(item.rot||0);
+}
+
+function placeItem(type, col, row){
+  const def = ITEM_DEFS[type];
+  if (!def) return;
+  ({col,row} = clampFootprint(col,row,def.L,def.W));
+  const item = { id: uid++, type, col, row, L:def.L, W:def.W, H:def.H, rot:0 };
+  refreshItemMesh(item);
+  placedItems.push(item);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+function resizeItem(id, axis, delta){
+  const item = placedItems.find(i=>i.id===id);
+  if (!item) return;
+  const def = ITEM_DEFS[item.type];
+  if (axis === 'H' && def.cat === 'zone') return;
+  item[axis] = clamp(item[axis] + delta, 1, 10);
+  const dims = footprintDims(item);
+  const fp = clampFootprint(item.col, item.row, dims.fl, dims.fw);
+  item.col = fp.col; item.row = fp.row;
+  refreshItemMesh(item);
+  if (selectedItem === item) positionHandles(item);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+function rotateItemBy(id, deltaDeg){
+  const item = placedItems.find(i=>i.id===id);
+  if (!item) return;
+  rotateItem(item, deltaDeg);
+  refreshItemMesh(item);
+  if (selectedItem === item) positionHandles(item);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+function removeItem(id){
+  const idx = placedItems.findIndex(i=>i.id===id);
+  if (idx<0) return;
+  if (selectedItem === placedItems[idx]) deselectItem();
+  roomGroup.remove(placedItems[idx].mesh);
+  placedItems.splice(idx,1);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+
+function placeHuman(col,row){
+  col = clamp(col,0,GRID-1); row = clamp(row,0,GRID-1);
+  const item = { id: uid++, col, row };
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.34,10), new THREE.MeshStandardMaterial({ color:0x334155, roughness:0.8 }));
+  body.position.y = 0.17 + CELL*0.02;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.065,12,10), new THREE.MeshStandardMaterial({ color:0x334155, roughness:0.8 }));
+  head.position.y = 0.4;
+  group.add(body); group.add(head);
+  const center = cellCenter(col,row);
+  group.position.set(center.x, 0, center.z);
+  roomGroup.add(group);
+  item.mesh = group;
+  humanItems.push(item);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+function removeHuman(id){
+  const idx = humanItems.findIndex(i=>i.id===id);
+  if (idx<0) return;
+  roomGroup.remove(humanItems[idx].mesh);
+  humanItems.splice(idx,1);
+  rebuildGrids(); recomputeRoute(true); refreshEditorLists(); scheduleAutosave();
+}
+
+/* ============ OCCUPANCY + COST + HEIGHT GRID ============ */
+/* obstacleGrid: hard-blocked cells (humans only — you can't stand on a person).
+   costGrid: soft avoidance weighting (avoidance zones + proximity to humans).
+   heightGrid: surface elevation the rat runs along at each cell — 0 for open floor,
+   or the top of whatever climbable furniture/wall occupies that cell, so the rat
+   climbs up and travels across furniture/walls instead of being blocked by them. */
+let obstacleGrid = [], costGrid = [], heightGrid = [];
+function spreadCost(cc,cr,valuesByDist){
+  const maxD = Math.max(...Object.keys(valuesByDist).map(Number));
+  for (let r=cr-maxD;r<=cr+maxD;r++){
+    for (let c=cc-maxD;c<=cc+maxD;c++){
+      if (c<0||c>=GRID||r<0||r>=GRID) continue;
+      const d = Math.max(Math.abs(c-cc), Math.abs(r-cr));
+      if (valuesByDist[d]!==undefined) costGrid[r][c] += valuesByDist[d];
+    }
+  }
+}
+function cellSurfaceY(col,row){
+  if (row<0||row>=GRID||col<0||col>=GRID) return 0;
+  return heightGrid[row][col] || 0;
+}
+function rebuildGrids(){
+  obstacleGrid = Array.from({length:GRID}, ()=> new Array(GRID).fill(false));
+  costGrid = Array.from({length:GRID}, ()=> new Array(GRID).fill(0));
+  heightGrid = Array.from({length:GRID}, ()=> new Array(GRID).fill(0));
+  placedItems.forEach(item=>{
+    const def = ITEM_DEFS[item.type];
+    const { fl, fw } = footprintDims(item);
+    if (def.climbable){
+      const topH = item.H * CELL;
+      for (let r=item.row; r<item.row+fw; r++){
+        for (let c=item.col; c<item.col+fl; c++){
+          if (c>=0&&c<GRID&&r>=0&&r<GRID) heightGrid[r][c] = Math.max(heightGrid[r][c], topH);
+        }
+      }
+    }
+    if (def.blocking){
+      /* walls: a true hard obstacle — never climbable over the top, only routable around */
+      for (let r=item.row; r<item.row+fw; r++){
+        for (let c=item.col; c<item.col+fl; c++){
+          if (c>=0&&c<GRID&&r>=0&&r<GRID) obstacleGrid[r][c] = true;
+        }
+      }
+    }
+    if (def.cat === 'zone'){
+      for (let r=item.row-1; r<=item.row+fw; r++){
+        for (let c=item.col-1; c<=item.col+fl; c++){
+          if (c<0||c>=GRID||r<0||r>=GRID) continue;
+          const inside = (c>=item.col && c<item.col+fl && r>=item.row && r<item.row+fw);
+          costGrid[r][c] += inside ? def.costOwn : def.costRing;
+        }
+      }
+    }
+  });
+  humanItems.forEach(h=>{
+    if (h.col>=0&&h.col<GRID&&h.row>=0&&h.row<GRID) obstacleGrid[h.row][h.col] = true;
+    spreadCost(h.col, h.row, {0:0, 1:14, 2:6});
+  });
+}
+rebuildGrids();
+
+/* ============ A* PATHFINDING (accounts for furniture/walls as climbable terrain, humans, avoidance zones) ============ */
+const NEIGHBORS8 = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+function heuristic(c,r,gc,gr){
+  const dx=Math.abs(c-gc), dy=Math.abs(r-gr);
+  return Math.max(dx,dy) + (Math.SQRT2-1)*Math.min(dx,dy);
+}
+function findPath(sc,sr,gc,gr){
+  if (obstacleGrid[gr] && obstacleGrid[gr][gc]) return null;
+  const key = (c,r)=> r*GRID+c;
+  const nodes = new Map();
+  const start = { c:sc, r:sr, g:0, f:heuristic(sc,sr,gc,gr), parent:null, closed:false };
+  nodes.set(key(sc,sr), start);
+  let openCount = 1, guard = 0;
+  while (openCount > 0 && guard < 6000){
+    guard++;
+    let cur=null, curKey=null;
+    for (const [k,n] of nodes){ if (!n.closed && (!cur || n.f < cur.f)){ cur=n; curKey=k; } }
+    if (!cur) break;
+    if (cur.c===gc && cur.r===gr){
+      const path=[]; let n=cur;
+      while (n){ path.unshift({c:n.c,r:n.r}); n = n.parent!==null ? nodes.get(n.parent) : null; }
+      return path;
+    }
+    cur.closed = true; openCount--;
+    for (const [dc,dr] of NEIGHBORS8){
+      const nc=cur.c+dc, nr=cur.r+dr;
+      if (nc<0||nc>=GRID||nr<0||nr>=GRID) continue;
+      if (obstacleGrid[nr][nc]) continue;
+      const climbDelta = Math.abs((heightGrid[nr][nc]||0) - (heightGrid[cur.r][cur.c]||0));
+      const stepCost = ((dc!==0 && dr!==0) ? Math.SQRT2 : 1) + costGrid[nr][nc]*0.14 + climbDelta*2.2;
+      const tentativeG = cur.g + stepCost;
+      const nk = key(nc,nr);
+      let nn = nodes.get(nk);
+      if (!nn){
+        nn = { c:nc, r:nr, g:tentativeG, f:tentativeG+heuristic(nc,nr,gc,gr), parent:curKey, closed:false };
+        nodes.set(nk, nn); openCount++;
+      } else if (!nn.closed && tentativeG < nn.g){
+        nn.g = tentativeG; nn.f = tentativeG + heuristic(nc,nr,gc,gr); nn.parent = curKey;
+      }
+    }
+  }
+  return null;
+}
+
+/* ============ ROUTE VISUAL — red dashed line + red cell pool, dynamically recalculated ============ */
+let routeLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color:0xd93025, dashSize:0.12, gapSize:0.08, transparent:true, opacity:0.9 }));
+roomGroup.add(routeLine);
+const ROUTE_POOL_SIZE = 140;
+const routePool = [];
+for (let i=0;i<ROUTE_POOL_SIZE;i++){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL*0.86, CELL*0.86), new THREE.MeshBasicMaterial({ color:0xd93025, transparent:true, opacity:0.26, side:THREE.DoubleSide }));
+  m.rotation.x = -Math.PI/2; m.visible = false;
+  roomGroup.add(m);
+  routePool.push(m);
+}
+let currentRoute = null;
+function updateRouteVisual(path){
+  currentRoute = path;
+  routePool.forEach(m=> m.visible=false);
+  if (!path || path.length < 2){
+    routeLine.geometry.setFromPoints([]);
+    document.getElementById('d-route').textContent = path ? `${path.length} cells` : 'No viable path';
+    return;
+  }
+  const pts = path.map(p=>{ const c=cellCenter(p.c,p.r); c.y=cellSurfaceY(p.c,p.r)+0.05; return c; });
+  routeLine.geometry.dispose();
+  routeLine.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+  routeLine.computeLineDistances();
+  path.forEach((p,i)=>{
+    if (i < ROUTE_POOL_SIZE){
+      const c = cellCenter(p.c,p.r);
+      const m = routePool[i];
+      m.position.set(c.x, cellSurfaceY(p.c,p.r)+0.012, c.z);
+      m.visible = true;
+    }
+  });
+  document.getElementById('d-route').textContent = `${path.length} cells`;
+}
+
+/* ============ VISITED TRAIL — green highlight on cells rat passes through ============ */
+const TRAIL_POOL_SIZE = 220;
+const trailPool = [];
+for (let i=0;i<TRAIL_POOL_SIZE;i++){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL*0.9, CELL*0.9), new THREE.MeshBasicMaterial({ color:0x188038, transparent:true, opacity:0, side:THREE.DoubleSide }));
+  m.rotation.x = -Math.PI/2; m.visible=false;
+  roomGroup.add(m);
+  trailPool.push({ mesh:m, born:0, active:false });
+}
+let trailCursor = 0, visitedCount = 0;
+const FADE_TIME = 7.5;
+function markVisited(col,row,now){
+  const c = cellCenter(col,row);
+  const slot = trailPool[trailCursor];
+  trailCursor = (trailCursor+1) % TRAIL_POOL_SIZE;
+  slot.mesh.position.set(c.x, cellSurfaceY(col,row)+0.012, c.z);
+  slot.mesh.visible = true;
+  slot.mesh.material.opacity = 0.5;
+  slot.born = now; slot.active = true;
+  visitedCount++;
+}
+function updateTrail(now){
+  trailPool.forEach(slot=>{
+    if (!slot.active) return;
+    const t = (now - slot.born) / FADE_TIME;
+    if (t >= 1){ slot.active=false; slot.mesh.visible=false; return; }
+    slot.mesh.material.opacity = 0.5*(1-t);
+  });
+}
+
+/* ============ ENTRANCE + GOAL MARKERS ============ */
+let GOAL_CELL = { c: GRID-3, r: GRID-3 };
+let entranceCell = { c: 1, r: Math.floor(GRID/2) };
+let manualEntrance = null;
+let randomizeEntrance = true;
+let pickingEntrance = false;
+
+const goalRing = new THREE.Mesh(new THREE.RingGeometry(0.11,0.14,32), new THREE.MeshBasicMaterial({ color:0x1a73e8, transparent:true, opacity:0.85, side:THREE.DoubleSide }));
+goalRing.rotation.x = -Math.PI/2;
+roomGroup.add(goalRing);
+const goalLabel = makeLabel(`GOAL · ${cellLabel(GOAL_CELL.c,GOAL_CELL.r)}`, 'tag-blue');
+roomGroup.add(goalLabel);
+function placeGoalMarker(c,r){
+  GOAL_CELL = { c, r };
+  const center = cellCenter(c,r);
+  goalRing.position.set(center.x, 0.015, center.z);
+  goalLabel.position.set(center.x, 0.3, center.z);
+  goalLabel.element.textContent = `GOAL · ${cellLabel(c,r)}`;
+}
+placeGoalMarker(GOAL_CELL.c, GOAL_CELL.r);
+const entranceRing = new THREE.Mesh(new THREE.RingGeometry(0.11,0.14,32), new THREE.MeshBasicMaterial({ color:0x0f172a, transparent:true, opacity:0.75, side:THREE.DoubleSide }));
+entranceRing.rotation.x = -Math.PI/2;
+roomGroup.add(entranceRing);
+const entranceLabel = makeLabel('ENTRY', 'tag-blue');
+roomGroup.add(entranceLabel);
+function placeEntranceMarker(c,r){
+  const center = cellCenter(c,r);
+  entranceRing.position.set(center.x, 0.016, center.z);
+  entranceLabel.position.set(center.x, 0.28, center.z);
+  entranceLabel.element.textContent = `ENTRY · ${cellLabel(c,r)}`;
+}
+placeEntranceMarker(entranceCell.c, entranceCell.r);
+function pickRandomEntrance(){
+  const edgeCells = [];
+  for (let i=0;i<GRID;i++){
+    [[i,0],[i,GRID-1],[0,i],[GRID-1,i]].forEach(([c,r])=>{ if (!obstacleGrid[r][c]) edgeCells.push({c,r}); });
+  }
+  if (edgeCells.length === 0) return { c:0, r:0 };
+  return edgeCells[Math.floor(Math.random()*edgeCells.length)];
+}
+
+/* ============ PREDATOR SOUND SYSTEM — visible waves + configurable presets ============ */
+const PREDATORS = [
+  { id:'owl',   label:'Owl',           shape:'concentric', color:0xf59e0b, freqLow:20,   freqHigh:800,   spawnInterval:0.9,  baseEff:70 },
+  { id:'kite',  label:'Black-winged Kite', shape:'arc',     color:0xea580c, freqLow:500,  freqHigh:3000,  spawnInterval:0.7,  baseEff:60 },
+  { id:'cat',   label:'Cat',           shape:'spiky',       color:0xdb2777, freqLow:1000, freqHigh:8000,  spawnInterval:0.5,  baseEff:55 },
+  { id:'snake', label:'Snake',         shape:'rattle',      color:0x65a30d, freqLow:2000, freqHigh:12000, spawnInterval:0.18, baseEff:45 },
+];
+let activePredatorId = 'owl';
+const statsByPredator = {};
+PREDATORS.forEach(p=> statsByPredator[p.id] = { count:0, totalEff:0 });
+
+const speakerPos = new THREE.Vector3(WORLD/2 - 0.15, ROOM_H*0.5, WORLD*0.28);
+const speakerRig = new THREE.Group();
+speakerRig.position.copy(speakerPos);
+roomGroup.add(speakerRig);
+{
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.18,0.08), new THREE.MeshStandardMaterial({ color:0x1e293b, roughness:0.7 }));
+  speakerRig.add(box);
+  const aimArrow = new THREE.Mesh(new THREE.ConeGeometry(0.035,0.16,10), new THREE.MeshStandardMaterial({ color:0xe37400, roughness:0.6 }));
+  aimArrow.rotation.x = Math.PI/2;
+  aimArrow.position.set(0,0,0.16);
+  speakerRig.add(aimArrow);
+  const lbl = makeLabel('SPEAKER · AUTO-AIM', 'tag-amber');
+  lbl.position.set(0, 0.16, 0);
+  speakerRig.add(lbl);
+}
+function shortestAngleDiff(a,b){
+  let d = (b-a) % (Math.PI*2);
+  if (d > Math.PI) d -= Math.PI*2;
+  if (d < -Math.PI) d += Math.PI*2;
+  return d;
+}
+function computeRatForwardDir(){
+  const d = new THREE.Vector3().subVectors(rat.stepTo, rat.stepFrom);
+  if (d.lengthSq() < 0.0001) return new THREE.Vector3(0,0,1);
+  return d.normalize();
+}
+function buildSpikyRing(color){
+  const spikes = 10, inner = 0.02, outer = 0.05;
+  const pts = [];
+  for (let i=0;i<=spikes*2;i++){
+    const rr = (i%2===0) ? outer : inner;
+    const a = (i/(spikes*2)) * Math.PI*2;
+    pts.push(new THREE.Vector3(Math.cos(a)*rr, Math.sin(a)*rr, 0));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color, transparent:true, opacity:0.7 });
+  return new THREE.LineLoop(geo, mat);
+}
+
+/* persistent translucent beam showing the FULL range of the active sound — narrow at the
+   emitter (behind the rat), widening out past the rat, so the whole reach is always visible */
+const rangeCone = new THREE.Mesh(
+  new THREE.ConeGeometry(1, 1, 28, 1, true),
+  new THREE.MeshBasicMaterial({ color:0xf59e0b, transparent:true, opacity:0.12, side:THREE.DoubleSide, depthWrite:false })
+);
+rangeCone.visible = false;
+roomGroup.add(rangeCone);
+const RANGE_LENGTH = CELL*6.4, RANGE_RADIUS = CELL*1.6;
+function updateRangeCone(originPos, dir, colorHex){
+  rangeCone.visible = true;
+  const center = originPos.clone().addScaledVector(dir, RANGE_LENGTH/2);
+  rangeCone.position.copy(center);
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().negate());
+  rangeCone.quaternion.copy(q);
+  rangeCone.scale.set(RANGE_RADIUS, RANGE_LENGTH, RANGE_RADIUS);
+  rangeCone.material.color.setHex(colorHex);
+}
+
+/* waves spawn behind the rat and travel forward through it — a visible, self-aiming
+   "sound wall" that pushes the rat onward whenever the active predator sound is effective */
+const activeWaves = [];
+function spawnWave(predator, originPos, dir){
+  let mesh, life, maxScale, rotSpeed = 0;
+  if (predator.shape === 'concentric' || predator.shape === 'rattle'){
+    const geo = new THREE.RingGeometry(0.03, 0.05, 32);
+    const mat = new THREE.MeshBasicMaterial({ color:predator.color, transparent:true, opacity:0.62, side:THREE.DoubleSide });
+    mesh = new THREE.Mesh(geo, mat);
+    life = predator.shape === 'rattle' ? 0.4 : 1.0;
+    maxScale = predator.shape === 'rattle' ? 3.2 : 6.5;
+  } else if (predator.shape === 'arc'){
+    const geo = new THREE.RingGeometry(0.03, 0.055, 24, 1, 0, Math.PI*0.6);
+    const mat = new THREE.MeshBasicMaterial({ color:predator.color, transparent:true, opacity:0.62, side:THREE.DoubleSide });
+    mesh = new THREE.Mesh(geo, mat);
+    life = 0.9; maxScale = 6; rotSpeed = 1.2;
+  } else {
+    mesh = buildSpikyRing(predator.color);
+    life = 0.75; maxScale = 4.5;
+  }
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), dir);
+  mesh.quaternion.copy(q);
+  mesh.position.copy(originPos);
+  roomGroup.add(mesh);
+  const travelDist = CELL*3.4;
+  activeWaves.push({ mesh, life, elapsed:0, maxScale, rotSpeed, isLine: predator.shape==='spiky', originPos: originPos.clone(), dir: dir.clone(), travelDist, hit:false, colorHex: predator.color });
+}
+
+/* brief flash where a wavefront actually reaches the rat, so the "hit" reads clearly */
+const impactFlashes = [];
+let ratHitFlashTimer = 0;
+function spawnImpact(pos, colorHex){
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.05,10,8), new THREE.MeshBasicMaterial({ color:colorHex, transparent:true, opacity:0.85 }));
+  mesh.position.copy(pos);
+  roomGroup.add(mesh);
+  impactFlashes.push({ mesh, life:0.35, elapsed:0 });
+  ratHitFlashTimer = 0.3;
+}
+function updateImpacts(dt){
+  for (let i=impactFlashes.length-1;i>=0;i--){
+    const w = impactFlashes[i];
+    w.elapsed += dt;
+    const t = w.elapsed / w.life;
+    if (t >= 1){
+      roomGroup.remove(w.mesh);
+      w.mesh.geometry.dispose(); w.mesh.material.dispose();
+      impactFlashes.splice(i,1);
+      continue;
+    }
+    const s = 0.3 + t*3.4;
+    w.mesh.scale.set(s,s,s);
+    w.mesh.material.opacity = 0.85 * (1-t);
+  }
+  if (ratHitFlashTimer > 0){
+    ratHitFlashTimer -= dt;
+    ratMat.emissive.setHex(0xf59e0b);
+  } else {
+    ratMat.emissive.setHex(0x0b3d20);
+  }
+}
+function updateWaves(dt){
+  for (let i=activeWaves.length-1;i>=0;i--){
+    const w = activeWaves[i];
+    w.elapsed += dt;
+    const t = w.elapsed / w.life;
+    if (t >= 1){
+      roomGroup.remove(w.mesh);
+      w.mesh.geometry.dispose(); w.mesh.material.dispose();
+      activeWaves.splice(i,1);
+      continue;
+    }
+    const s = 0.3 + t * w.maxScale;
+    w.mesh.scale.set(s,s,1);
+    w.mesh.position.copy(w.originPos).addScaledVector(w.dir, w.travelDist * t);
+    w.mesh.material.opacity = (w.isLine?0.7:0.62) * (1 - t*0.7);
+    if (w.rotSpeed) w.mesh.rotateZ(dt * w.rotSpeed);
+    if (!w.hit && w.mesh.position.distanceTo(ratGroup.position) < CELL*0.75){
+      w.hit = true;
+      spawnImpact(ratGroup.position.clone(), w.colorHex);
+    }
+  }
+}
+
+
+let deterrenceActive = false;
+let lowRiskStreak = 0;
+let waveSpawnTimer = 0;
+let currentSessionEff = null;
+function activeDef(){ return PREDATORS.find(p=>p.id===activePredatorId); }
+
+function activateDeterrence(){
+  deterrenceActive = true;
+  const p = activeDef();
+  currentSessionEff = clamp(p.baseEff + (Math.random()*20-10), 5, 98);
+  waveSpawnTimer = 0;
+  logEvent(`Acoustic deterrence engaged — ${p.label} (est. effectiveness ${Math.round(currentSessionEff)}%)`);
+  document.getElementById('d-sound').textContent = p.label;
+  document.getElementById('d-eff').textContent = `${Math.round(currentSessionEff)}%`;
+  document.getElementById('d-eff-bar').style.width = `${currentSessionEff}%`;
+}
+function deactivateDeterrence(){
+  deterrenceActive = false;
+  const p = activeDef();
+  if (currentSessionEff !== null){
+    statsByPredator[p.id].count++;
+    statsByPredator[p.id].totalEff += currentSessionEff;
+    logEvent(`Left the high-risk zone — ${p.label} scored ${Math.round(currentSessionEff)}% this run`);
+  }
+  currentSessionEff = null;
+  document.getElementById('d-eff').textContent = '—';
+  document.getElementById('d-eff-bar').style.width = '0%';
+  refreshSuggestion();
+}
+function refreshSuggestion(){
+  const untried = PREDATORS.find(p=> statsByPredator[p.id].count===0);
+  let text;
+  if (untried){
+    text = `Try ${untried.label} (no data yet)`;
+  } else {
+    let best = null;
+    PREDATORS.forEach(p=>{
+      const s = statsByPredator[p.id];
+      const avg = s.totalEff / s.count;
+      if (!best || avg > best.avg) best = { label:p.label, avg };
+    });
+    text = best ? `${best.label} (avg. effectiveness ${Math.round(best.avg)}%)` : 'No data yet';
+  }
+  document.getElementById('d-suggest').textContent = text;
+}
+refreshSuggestion();
+
+/* ============ RAT ============ */
+const ratGroup = new THREE.Group();
+const ratMat = new THREE.MeshStandardMaterial({ color:0x188038, emissive:0x0b3d20, roughness:0.5 });
+const ratBody = new THREE.Mesh(new THREE.SphereGeometry(0.075,12,10), ratMat);
+ratBody.scale.set(1,0.62,1.55);
+ratGroup.add(ratBody);
+const ratHead = new THREE.Mesh(new THREE.SphereGeometry(0.05,10,8), ratMat);
+ratHead.position.set(0,0.01,0.11);
+ratGroup.add(ratHead);
+const ratTail = new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.002,0.16,6), ratMat);
+ratTail.rotation.x = Math.PI/2; ratTail.position.set(0,0,-0.15);
+ratGroup.add(ratTail);
+const ratLight = new THREE.PointLight(0x188038, 0.7, 2.2);
+ratLight.position.y = 0.2;
+ratGroup.add(ratLight);
+const ratLabel = makeLabel('SUBJECT_01', 'tag-green');
+ratLabel.position.set(0,0.24,0);
+ratGroup.add(ratLabel);
+ratGroup.visible = false;
+roomGroup.add(ratGroup);
+
+const rat = { col:0, row:0, prevCol:0, prevRow:0, stepFrom:new THREE.Vector3(), stepTo:new THREE.Vector3(), stepT:1, stepDuration:0.55 };
+function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+/* --- free-roam target: keeps the rat ranging widely across the grid instead of
+   camping near the goal; only overridden by the ideal route while fleeing --- */
+let roamTarget = { c:0, r:0 };
+let roamTimer = 0;
+function pickRoamTarget(){
+  let fallback = null;
+  for (let tries=0; tries<40; tries++){
+    const c = Math.floor(Math.random()*GRID);
+    const r = Math.floor(Math.random()*GRID);
+    if (obstacleGrid[r][c]) continue;
+    if (!fallback) fallback = { c, r };
+    const dist = Math.max(Math.abs(c-rat.col), Math.abs(r-rat.row));
+    if (dist >= GRID*0.35) return { c, r };
+  }
+  return fallback || { c:rat.col, r:rat.row };
+}
+
+function spawnRat(overrideStart){
+  const start = overrideStart || ((randomizeEntrance || !manualEntrance) ? pickRandomEntrance() : manualEntrance);
+  entranceCell = start;
+  placeEntranceMarker(start.c, start.r);
+  rat.col = start.c; rat.row = start.r; rat.prevCol = start.c; rat.prevRow = start.r;
+  const c = cellCenter(start.c, start.r); c.y = cellSurfaceY(start.c, start.r) + 0.09;
+  rat.stepFrom.copy(c); rat.stepTo.copy(c); rat.stepT = 1; rat.stepDuration = 0.55;
+  ratGroup.position.copy(c);
+  ratGroup.visible = true;
+  trailPool.forEach(s=>{ s.active=false; s.mesh.visible=false; });
+  visitedCount = 0;
+  deterrenceActive = false; lowRiskStreak = 0; currentSessionEff = null;
+  document.getElementById('d-eff').textContent = '—';
+  document.getElementById('d-eff-bar').style.width = '0%';
+  markVisited(start.c, start.r, simSeconds);
+  roamTarget = pickRoamTarget();
+  roamTimer = 5 + Math.random()*4;
+  recomputeRoute(true);
+}
+
+/* manual drag-and-drop placement of the rat itself (mock/testing) */
+function dropRatAt(col,row){
+  if (obstacleGrid[row][col]){ logEvent('That cell is occupied — cannot place the rat there'); return; }
+  spawnRat({ c:col, r:row });
+  phase = PHASE.TRACKING; phaseTime = 0;
+  setStatus('', 'TRACKING', '— manually placed subject');
+  logEvent(`Rat manually placed at grid ${cellLabel(col,row)}`);
+}
+
+function validNeighbors(c,r){
+  const out = [];
+  for (const [dc,dr] of NEIGHBORS8){
+    const nc=c+dc, nr=r+dr;
+    if (nc<0||nc>=GRID||nr<0||nr>=GRID) continue;
+    if (obstacleGrid[nr][nc]) continue;
+    out.push({c:nc,r:nr});
+  }
+  return out;
+}
+function decideNextCell(){
+  const neighbors = validNeighbors(rat.col, rat.row);
+  if (neighbors.length === 0) return { c:rat.col, r:rat.row };
+
+  if (deterrenceActive){
+    /* fleeing: bias strongly toward the ideal route to the goal, scaled by sound effectiveness */
+    let pathNext = null;
+    if (currentRoute && currentRoute.length > 1){
+      const idx = currentRoute.findIndex(p=> p.c===rat.col && p.r===rat.row);
+      if (idx >= 0 && idx < currentRoute.length-1){
+        const cand = currentRoute[idx+1];
+        if (neighbors.some(n=> n.c===cand.c && n.r===cand.r)) pathNext = cand;
+      }
+    }
+    const effBoost = currentSessionEff!==null ? currentSessionEff/100 : 0.5;
+    const pFollow = 0.5 + effBoost*0.35;
+    const pBack = 0.10 + (1-effBoost)*0.12;
+    const roll = Math.random();
+    if (roll < pFollow && pathNext) return pathNext;
+    if (roll < pFollow + pBack){
+      const back = neighbors.find(n=> n.c===rat.prevCol && n.r===rat.prevRow);
+      if (back) return back;
+    }
+    return neighbors[Math.floor(Math.random()*neighbors.length)];
+  }
+
+  /* free roaming: mostly random/back-and-forth, loosely drifting toward a far, periodically-refreshed target */
+  let toward = null, bestDist = Infinity;
+  neighbors.forEach(n=>{
+    const d = Math.max(Math.abs(n.c-roamTarget.c), Math.abs(n.r-roamTarget.r));
+    if (d < bestDist){ bestDist = d; toward = n; }
+  });
+  const pTowardTarget = 0.38;
+  const pBack = 0.20;
+  const roll = Math.random();
+  if (roll < pTowardTarget && toward) return toward;
+  if (roll < pTowardTarget + pBack){
+    const back = neighbors.find(n=> n.c===rat.prevCol && n.r===rat.prevRow);
+    if (back) return back;
+  }
+  return neighbors[Math.floor(Math.random()*neighbors.length)];
+}
+function updateRat(dt){
+  rat.stepT += dt / rat.stepDuration;
+  if (rat.stepT > 1) rat.stepT = 1;
+  const pos = new THREE.Vector3().lerpVectors(rat.stepFrom, rat.stepTo, easeInOut(rat.stepT));
+  ratGroup.position.copy(pos);
+  const dir = new THREE.Vector3().subVectors(rat.stepTo, rat.stepFrom);
+  if (dir.lengthSq() > 0.0001) ratGroup.rotation.y = Math.atan2(dir.x, dir.z);
+
+  document.getElementById('coord-readout').innerHTML = `GRID <b>${cellLabel(rat.col,rat.row)}</b>&nbsp;&nbsp;X ${pos.x.toFixed(2)}&nbsp;&nbsp;Z ${pos.z.toFixed(2)}`;
+  document.getElementById('d-cell').textContent = cellLabel(rat.col,rat.row);
+  document.getElementById('d-vel').textContent = `${(CELL/rat.stepDuration).toFixed(2)} m/s`;
+
+  if (rat.stepT >= 1){
+    const next = decideNextCell();
+    rat.prevCol = rat.col; rat.prevRow = rat.row;
+    rat.col = next.c; rat.row = next.r;
+    rat.stepFrom.copy(rat.stepTo);
+    const c = cellCenter(rat.col, rat.row); c.y = cellSurfaceY(rat.col, rat.row) + 0.09;
+    rat.stepTo.copy(c);
+    rat.stepT = 0;
+    const effBoost = deterrenceActive && currentSessionEff!==null ? currentSessionEff/100 : 0;
+    let duration = deterrenceActive ? 0.55 * (1 - effBoost*0.35) : 0.55;
+    const climbing = Math.abs(c.y - rat.stepFrom.y) > 0.001;
+    if (climbing) duration *= 1.6; // climbing furniture/walls is slower than a flat run
+    rat.stepDuration = duration;
+    markVisited(rat.col, rat.row, simSeconds);
+
+    roamTimer -= rat.stepDuration;
+    const distToRoam = Math.max(Math.abs(rat.col-roamTarget.c), Math.abs(rat.row-roamTarget.r));
+    if (!deterrenceActive && (distToRoam <= 1 || roamTimer <= 0)){
+      roamTarget = pickRoamTarget();
+      roamTimer = 5 + Math.random()*4;
+    }
+    return true;
+  }
+  return false;
+}
+
+/* ============ ROUTE RECOMPUTE ============ */
+let routeRecalcTimer = 0;
+function recomputeRoute(force){
+  if (!ratGroup.visible && !force) return;
+  const path = findPath(rat.col, rat.row, GOAL_CELL.c, GOAL_CELL.r);
+  updateRouteVisual(path);
+}
+
+/* ============ STATE MACHINE ============ */
+const PHASE = { IDLE:'idle', TRACKING:'tracking', CAPTURED:'captured', COOLDOWN:'cooldown' };
+let phase = PHASE.IDLE, phaseTime = 0, speedMult = 1;
+const statusChip = document.getElementById('status-chip');
+const statusLabel = document.getElementById('status-label');
+const statusSub = document.getElementById('status-sub');
+const dEvent = document.getElementById('d-event');
+function setStatus(kind, label, sub){
+  statusChip.className = 'overlay status-chip' + (kind?(' '+kind):'');
+  statusLabel.textContent = label; statusSub.textContent = sub;
+  document.getElementById('d-status').textContent = label;
+}
+function logEvent(text){ dEvent.textContent = text; }
+
+function enterPhase(p){
+  phase = p; phaseTime = 0;
+  if (p === PHASE.IDLE){
+    setStatus('', 'SCANNING', '— patrolling, no subject');
+    ratGroup.visible = false;
+    document.getElementById('d-cell').textContent = '—';
+    document.getElementById('d-vel').textContent = '0.00 m/s';
+    document.getElementById('d-route').textContent = '—';
+    routePool.forEach(m=> m.visible=false);
+    routeLine.geometry.setFromPoints([]);
+    logEvent('Waiting for next incursion');
+  } else if (p === PHASE.TRACKING){
+    spawnRat();
+    setStatus('', 'TRACKING', '— subject detected');
+    logEvent(`Incursion detected — grid ${cellLabel(entranceCell.c, entranceCell.r)}`);
+  } else if (p === PHASE.CAPTURED){
+    setStatus('captured', 'CAPTURED', '— secured at goal');
+    logEvent(`Subject reached grid ${cellLabel(GOAL_CELL.c, GOAL_CELL.r)}`);
+  } else if (p === PHASE.COOLDOWN){
+    logEvent('Resetting patrol');
+  }
+  document.getElementById('d-entry').textContent = cellLabel(entranceCell.c, entranceCell.r);
+  document.getElementById('d-goal').textContent = cellLabel(GOAL_CELL.c, GOAL_CELL.r);
+}
+enterPhase(PHASE.IDLE);
+
+/* ============ CLOCK ============ */
+let simSeconds = 6*3600 + 14*60;
+function fmtClock(s){
+  s = Math.floor(s);
+  const h=String(Math.floor(s/3600)%24).padStart(2,'0');
+  const m=String(Math.floor(s/60)%60).padStart(2,'0');
+  const sec=String(s%60).padStart(2,'0');
+  return `${h}:${m}:${sec}`;
+}
+
+/* ============ DRAG & DROP + ENTRANCE PICKING ============ */
+const raycaster = new THREE.Raycaster();
+const floorPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+function screenToCell(clientX, clientY){
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1, -((clientY-rect.top)/rect.height)*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(floorPlane, hit)) return null;
+  return worldToCell(hit.x, hit.z);
+}
+function screenToFloorPoint(clientX, clientY){
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1, -((clientY-rect.top)/rect.height)*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = new THREE.Vector3();
+  return raycaster.ray.intersectPlane(floorPlane, hit) ? hit : null;
+}
+
+/* --- drag placement silhouette — shows exactly where the dragged object will land ---
+   dataTransfer.getData() only reliably returns a value on 'drop' (browser security
+   restriction), so the dragged type is tracked separately from 'dragstart' instead. */
+let draggingType = null;
+const dragPreviewVolume = new THREE.Mesh(
+  new THREE.BoxGeometry(1,1,1),
+  new THREE.MeshBasicMaterial({ color:0x1a73e8, transparent:true, opacity:0.28, side:THREE.DoubleSide, depthWrite:false })
+);
+dragPreviewVolume.visible = false;
+roomGroup.add(dragPreviewVolume);
+const dragPreviewEdges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1,1,1)),
+  new THREE.LineBasicMaterial({ color:0x1a73e8, transparent:true, opacity:0.9 })
+);
+dragPreviewEdges.visible = false;
+roomGroup.add(dragPreviewEdges);
+const dragPreviewFootprint = new THREE.Mesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({ color:0x1a73e8, transparent:true, opacity:0.24, side:THREE.DoubleSide, depthWrite:false })
+);
+dragPreviewFootprint.rotation.x = -Math.PI/2;
+dragPreviewFootprint.visible = false;
+roomGroup.add(dragPreviewFootprint);
+
+function dragPreviewSpec(type){
+  if (type.startsWith('furniture:')){
+    const def = ITEM_DEFS[type.split(':')[1]];
+    return def ? { L:def.L, W:def.W, H:def.H, color:def.color } : null;
+  }
+  if (type === 'zone'){
+    const def = ITEM_DEFS.zone;
+    return { L:def.L, W:def.W, H:def.H, color:def.color };
+  }
+  if (type === 'human') return { L:1, W:1, H:2, color:0x334155 };
+  if (type === 'rat') return { L:1, W:1, H:1, color:0x188038 };
+  return null;
+}
+function showDragPreview(col,row,spec){
+  const sx = spec.L*CELL, sy = Math.max(spec.H*CELL, CELL*0.2), sz = spec.W*CELL;
+  const cx = -WORLD/2 + CELL*(col+spec.L/2);
+  const cz = -WORLD/2 + CELL*(row+spec.W/2);
+  dragPreviewVolume.scale.set(sx,sy,sz);
+  dragPreviewVolume.position.set(cx, sy/2, cz);
+  dragPreviewVolume.material.color.setHex(spec.color);
+  dragPreviewVolume.visible = true;
+
+  dragPreviewEdges.scale.copy(dragPreviewVolume.scale);
+  dragPreviewEdges.position.copy(dragPreviewVolume.position);
+  dragPreviewEdges.material.color.setHex(spec.color);
+  dragPreviewEdges.visible = true;
+
+  dragPreviewFootprint.scale.set(sx, sz, 1);
+  dragPreviewFootprint.position.set(cx, 0.018, cz);
+  dragPreviewFootprint.material.color.setHex(spec.color);
+  dragPreviewFootprint.visible = true;
+}
+function hideDragPreview(){
+  dragPreviewVolume.visible = false;
+  dragPreviewEdges.visible = false;
+  dragPreviewFootprint.visible = false;
+}
+function updateDragPreview(clientX, clientY){
+  if (!draggingType){ hideDragPreview(); return; }
+  const spec = dragPreviewSpec(draggingType);
+  const cell = screenToCell(clientX, clientY);
+  if (!spec || !cell){ hideDragPreview(); return; }
+  const { col, row } = clampFootprint(cell.c, cell.r, spec.L, spec.W);
+  showDragPreview(col, row, spec);
+}
+
+document.querySelectorAll('[data-drag]').forEach(el=>{
+  el.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', el.dataset.drag);
+    draggingType = el.dataset.drag;
+  });
+  el.addEventListener('dragend', ()=>{ draggingType = null; hideDragPreview(); });
+});
+renderer.domElement.addEventListener('dragover', e=>{
+  e.preventDefault();
+  updateDragPreview(e.clientX, e.clientY);
+});
+renderer.domElement.addEventListener('dragleave', ()=> hideDragPreview());
+renderer.domElement.addEventListener('drop', e=>{
+  e.preventDefault();
+  hideDragPreview();
+  draggingType = null;
+  const data = e.dataTransfer.getData('text/plain');
+  const cell = screenToCell(e.clientX, e.clientY);
+  if (!cell) return;
+  if (data.startsWith('furniture:')) placeItem(data.split(':')[1], cell.c, cell.r);
+  else if (data === 'zone') placeItem('zone', cell.c, cell.r);
+  else if (data === 'human') placeHuman(cell.c, cell.r);
+  else if (data === 'rat') dropRatAt(cell.c, cell.r);
+});
+
+/* ============ SELECT / ROTATE / DRAG-RESIZE placed furniture & zones ============ */
+let selectedItem = null;
+let activeDrag = null;      // { item, axis:'L'|'W'|'H', dir:+1|-1, startClientY, startH }
+let justFinishedDrag = false;
+
+const handleGroup = new THREE.Group();
+roomGroup.add(handleGroup);
+const HANDLE_DEFS = [
+  { axis:'L', dir: 1, color:0x1a73e8 },
+  { axis:'L', dir:-1, color:0x1a73e8 },
+  { axis:'W', dir: 1, color:0x188038 },
+  { axis:'W', dir:-1, color:0x188038 },
+  { axis:'H', dir: 1, color:0xe37400 },
+];
+const handleMeshes = HANDLE_DEFS.map(def=>{
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.055,14,12),
+    new THREE.MeshStandardMaterial({ color:def.color, emissive:def.color, emissiveIntensity:0.3, roughness:0.35 })
+  );
+  m.userData = { axis:def.axis, dir:def.dir };
+  m.visible = false;
+  handleGroup.add(m);
+  return m;
+});
+const selectionOutline = new THREE.LineLoop(
+  new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-0.5,0,-0.5), new THREE.Vector3(0.5,0,-0.5),
+    new THREE.Vector3(0.5,0,0.5), new THREE.Vector3(-0.5,0,0.5)
+  ]),
+  new THREE.LineBasicMaterial({ color:0x1a73e8, transparent:true, opacity:0.9 })
+);
+selectionOutline.visible = false;
+roomGroup.add(selectionOutline);
+
+function positionHandles(item){
+  const def = ITEM_DEFS[item.type];
+  const dims = footprintDims(item);
+  const axisL = new THREE.Vector3(1,0,0).applyQuaternion(item.mesh.quaternion);
+  const axisW = new THREE.Vector3(0,0,1).applyQuaternion(item.mesh.quaternion);
+  const center = item.mesh.position.clone();
+  const sy = item.H*CELL;
+  const baseYVal = baseY(def, sy);
+  const midY = baseYVal + sy/2;
+  handleMeshes.forEach(m=>{
+    const { axis, dir } = m.userData;
+    if (axis === 'H'){
+      if (def.cat === 'zone'){ m.visible = false; return; }
+      m.position.set(center.x, baseYVal + sy + 0.1, center.z);
+      m.visible = true;
+    } else {
+      const axisVec = axis === 'L' ? axisL : axisW;
+      const half = (axis === 'L' ? item.L : item.W) * CELL/2 + 0.09;
+      m.position.copy(center).addScaledVector(axisVec, dir*half);
+      m.position.y = midY;
+      m.visible = true;
+    }
+  });
+  selectionOutline.scale.set(dims.fl*CELL, 1, dims.fw*CELL);
+  selectionOutline.position.set(center.x, 0.022, center.z);
+  selectionOutline.visible = true;
+}
+function selectItem(item){
+  selectedItem = item;
+  positionHandles(item);
+}
+function deselectItem(){
+  selectedItem = null;
+  handleMeshes.forEach(m=> m.visible=false);
+  selectionOutline.visible = false;
+}
+function pickHandle(clientX, clientY){
+  if (!selectedItem) return null;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1, -((clientY-rect.top)/rect.height)*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(handleMeshes, false);
+  return hits.length ? hits[0].object : null;
+}
+function pickItem(clientX, clientY){
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1, -((clientY-rect.top)/rect.height)*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  const meshes = placedItems.map(i=>i.mesh);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (!hits.length) return null;
+  let obj = hits[0].object;
+  while (obj && !placedItems.find(i=>i.mesh===obj)) obj = obj.parent;
+  return obj ? placedItems.find(i=>i.mesh===obj) : null;
+}
+/* dragging an edge handle: the OPPOSITE edge stays put, only the grabbed edge moves */
+function applyEdgeResize(item, axis, dir, worldHitPoint){
+  const axisWorld = (axis === 'L' ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,0,1)).applyQuaternion(item.mesh.quaternion);
+  const dimsBefore = footprintDims(item);
+  const centerBefore = new THREE.Vector3(
+    -WORLD/2 + CELL*(item.col + dimsBefore.fl/2), 0,
+    -WORLD/2 + CELL*(item.row + dimsBefore.fw/2)
+  );
+  const currentLen = axis === 'L' ? item.L : item.W;
+  const fixedEdge = centerBefore.clone().addScaledVector(axisWorld, -dir*currentLen*CELL/2);
+  const rel = new THREE.Vector3().subVectors(worldHitPoint, fixedEdge);
+  const projected = rel.dot(axisWorld) * dir;
+  const newLenUnits = clamp(Math.round(projected/CELL), 1, 10);
+  if (axis === 'L') item.L = newLenUnits; else item.W = newLenUnits;
+  const dimsAfter = footprintDims(item);
+  const newCenter = fixedEdge.clone().addScaledVector(axisWorld, dir*newLenUnits*CELL/2);
+  const anchor = centerToAnchor(item, newCenter.x, newCenter.z);
+  const fp = clampFootprint(anchor.col, anchor.row, dimsAfter.fl, dimsAfter.fw);
+  item.col = fp.col; item.row = fp.row;
+}
+
+renderer.domElement.addEventListener('pointerdown', e=>{
+  if (pickingEntrance) return;
+  const handle = pickHandle(e.clientX, e.clientY);
+  if (!handle || !selectedItem) return;
+  controls.enabled = false;
+  activeDrag = { item:selectedItem, axis:handle.userData.axis, dir:handle.userData.dir, startClientY:e.clientY, startH:selectedItem.H };
+  e.preventDefault();
+});
+window.addEventListener('pointermove', e=>{
+  if (!activeDrag) return;
+  const item = activeDrag.item;
+  if (activeDrag.axis === 'H'){
+    const deltaPixels = activeDrag.startClientY - e.clientY;
+    const newH = clamp(activeDrag.startH + Math.round(deltaPixels/18), 1, 10);
+    if (newH !== item.H){
+      item.H = newH;
+      refreshItemMesh(item);
+      positionHandles(item);
+      rebuildGrids(); recomputeRoute(true); refreshEditorLists();
+    }
+  } else {
+    const hit = screenToFloorPoint(e.clientX, e.clientY);
+    if (hit){
+      applyEdgeResize(item, activeDrag.axis, activeDrag.dir, hit);
+      refreshItemMesh(item);
+      positionHandles(item);
+      rebuildGrids(); recomputeRoute(true); refreshEditorLists();
+    }
+  }
+});
+window.addEventListener('pointerup', ()=>{
+  if (activeDrag){
+    activeDrag = null;
+    controls.enabled = true;
+    justFinishedDrag = true;
+    scheduleAutosave();
+  }
+});
+
+renderer.domElement.addEventListener('click', e=>{
+  if (justFinishedDrag){ justFinishedDrag = false; return; }
+  if (pickingEntrance){
+    const cell = screenToCell(e.clientX, e.clientY);
+    if (!cell) return;
+    if (obstacleGrid[cell.r][cell.c]){ logEvent('That cell is occupied'); return; }
+    manualEntrance = { c:cell.c, r:cell.r };
+    document.getElementById('toggle-randomize').checked = false;
+    randomizeEntrance = false;
+    placeEntranceMarker(cell.c, cell.r);
+    pickingEntrance = false;
+    document.getElementById('btn-set-entrance').classList.remove('active');
+    logEvent(`Entrance set to ${cellLabel(cell.c,cell.r)}`);
+    scheduleAutosave();
+    return;
+  }
+  if (pickHandle(e.clientX, e.clientY)) return;
+  const item = pickItem(e.clientX, e.clientY);
+  if (item) selectItem(item); else deselectItem();
+});
+window.addEventListener('keydown', e=>{
+  if (e.key === 'Escape') deselectItem();
+});
+
+
+/* ============ EDITOR PANEL — tabs, lists, sound config ============ */
+const editorPanel = document.getElementById('editor-panel');
+document.getElementById('btn-edit-scene').addEventListener('click', ()=> editorPanel.classList.toggle('open'));
+document.getElementById('editor-close').addEventListener('click', ()=> editorPanel.classList.remove('open'));
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b===btn));
+    document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('hidden', p.dataset.tabpanel !== btn.dataset.tab));
+  });
+});
+
+function dimStepperHTML(item, axes){
+  return axes.map(ax=>`<span class="dim">${ax}:${item[ax]}<button class="mini" data-resize="${item.id}" data-axis="${ax}" data-delta="1">+</button><button class="mini" data-resize="${item.id}" data-axis="${ax}" data-delta="-1">−</button></span>`).join('');
+}
+function rotateButtonHTML(item){
+  return `<span class="dim">${item.rot||0}°<button class="mini" data-rotate="${item.id}" title="Rotate 90°">⟳</button></span>`;
+}
+function refreshEditorLists(){
+  document.getElementById('d-furniture').textContent = placedItems.filter(i=>ITEM_DEFS[i.type].cat==='furniture').length;
+  document.getElementById('d-zones').textContent = placedItems.filter(i=>ITEM_DEFS[i.type].cat==='zone').length;
+  document.getElementById('d-humans').textContent = humanItems.length;
+
+  const furnList = placedItems.filter(i=>ITEM_DEFS[i.type].cat==='furniture');
+  const listFurn = document.getElementById('list-furniture');
+  listFurn.innerHTML = furnList.length ? furnList.map(item=>`
+    <div class="placed-row${selectedItem===item?' selected':''}" data-select="${item.id}"><div><div class="lbl">${ITEM_DEFS[item.type].label} · ${cellLabel(item.col,item.row)}</div>
+    <div class="dims">${dimStepperHTML(item, ['L','W','H'])}${rotateButtonHTML(item)}</div></div>
+    <button class="small danger" data-remove="${item.id}">✕</button></div>`).join('') : '<div class="placed-empty">Nothing placed yet</div>';
+
+  const zoneList = placedItems.filter(i=>ITEM_DEFS[i.type].cat==='zone');
+  const listZones = document.getElementById('list-zones');
+  listZones.innerHTML = zoneList.length ? zoneList.map(item=>`
+    <div class="placed-row${selectedItem===item?' selected':''}" data-select="${item.id}"><div><div class="lbl">${ITEM_DEFS[item.type].label} · ${cellLabel(item.col,item.row)}</div>
+    <div class="dims">${dimStepperHTML(item, ['L','W'])}${rotateButtonHTML(item)}</div></div>
+    <button class="small danger" data-remove="${item.id}">✕</button></div>`).join('') : '<div class="placed-empty">No zones yet</div>';
+
+  const listHumans = document.getElementById('list-humans');
+  listHumans.innerHTML = humanItems.length ? humanItems.map(item=>`
+    <div class="placed-row"><div class="lbl">Human · ${cellLabel(item.col,item.row)}</div>
+    <button class="small danger" data-remove-human="${item.id}">✕</button></div>`).join('') : '<div class="placed-empty">Nothing placed yet</div>';
+}
+document.getElementById('editor-panel').addEventListener('click', e=>{
+  const rid = e.target.getAttribute('data-remove');
+  const hid = e.target.getAttribute('data-remove-human');
+  const rsid = e.target.getAttribute('data-resize');
+  const rotid = e.target.getAttribute('data-rotate');
+  const selRow = e.target.closest('[data-select]');
+  if (rid) removeItem(parseInt(rid,10));
+  if (hid) removeHuman(parseInt(hid,10));
+  if (rsid) resizeItem(parseInt(rsid,10), e.target.getAttribute('data-axis'), parseInt(e.target.getAttribute('data-delta'),10));
+  if (rotid) rotateItemBy(parseInt(rotid,10), 90);
+  if (!rid && !rsid && !rotid && selRow){
+    const item = placedItems.find(i=>i.id===parseInt(selRow.getAttribute('data-select'),10));
+    if (item) selectItem(item);
+    refreshEditorLists();
+  }
+});
+refreshEditorLists();
+
+/* ============ RANDOM STIMULATION — generate a random home floor plan ============ */
+function randomStimulation(){
+  deselectItem();
+  for (let i=placedItems.length-1;i>=0;i--){
+    if (ITEM_DEFS[placedItems[i].type].cat === 'furniture'){
+      roomGroup.remove(placedItems[i].mesh);
+      placedItems.splice(i,1);
+    }
+  }
+  humanItems.forEach(h=> roomGroup.remove(h.mesh));
+  humanItems.length = 0;
+
+  const MARGIN = 4;
+  const hx = MARGIN, hz = MARGIN, hw = GRID-MARGIN*2, hh = GRID-MARGIN*2;
+
+  function addWallSeg(vertical, fixedCoord, start, length){
+    if (length <= 0) return;
+    const def = ITEM_DEFS.wall;
+    const item = vertical
+      ? { id: uid++, type:'wall', col:fixedCoord, row:start, L:1, W:length, H:def.H, rot:0 }
+      : { id: uid++, type:'wall', col:start, row:fixedCoord, L:length, W:1, H:def.H, rot:0 };
+    refreshItemMesh(item);
+    placedItems.push(item);
+  }
+  /* a wall line with a randomized doorway gap somewhere along its middle */
+  function wallLineWithDoor(vertical, fixedCoord, spanStart, spanEnd){
+    const span = spanEnd - spanStart;
+    const doorLen = 2 + Math.floor(Math.random()*2);
+    if (span <= doorLen + 3) return null; // too short to wall off — leave fully open
+    const doorStart = spanStart + 1 + Math.floor(Math.random()*(span-doorLen-2));
+    const doorEnd = doorStart + doorLen;
+    addWallSeg(vertical, fixedCoord, spanStart, doorStart-spanStart);
+    addWallSeg(vertical, fixedCoord, doorEnd, spanEnd-doorEnd);
+    return { start:doorStart, end:doorEnd };
+  }
+
+  /* --- BSP-partition the house footprint into rectangular rooms, walled and doored --- */
+  const rooms = [];
+  function split(rect, depth){
+    const minSize = 9;
+    const canV = rect.w >= minSize*2, canH = rect.h >= minSize*2;
+    if (depth<=0 || (!canV && !canH)){ rooms.push(rect); return; }
+    const vertical = canV && (!canH || Math.random()<0.5);
+    if (vertical){
+      const at = rect.col + minSize + Math.floor(Math.random()*(rect.w-minSize*2+1));
+      wallLineWithDoor(true, at, rect.row, rect.row+rect.h);
+      split({ col:rect.col, row:rect.row, w:at-rect.col, h:rect.h }, depth-1);
+      split({ col:at, row:rect.row, w:rect.col+rect.w-at, h:rect.h }, depth-1);
+    } else {
+      const at = rect.row + minSize + Math.floor(Math.random()*(rect.h-minSize*2+1));
+      wallLineWithDoor(false, at, rect.col, rect.col+rect.w);
+      split({ col:rect.col, row:rect.row, w:rect.w, h:at-rect.row }, depth-1);
+      split({ col:rect.col, row:at, w:rect.w, h:rect.row+rect.h-at }, depth-1);
+    }
+  }
+  split({ col:hx, row:hz, w:hw, h:hh }, 2 + Math.floor(Math.random()*2));
+
+  /* --- perimeter walls, one side gets the front door --- */
+  const frontSide = Math.floor(Math.random()*4); // 0 north, 1 south, 2 west, 3 east
+  const perim = [
+    { vertical:false, fixed:hz-1,  spanStart:hx, spanEnd:hx+hw, side:0 },
+    { vertical:false, fixed:hz+hh, spanStart:hx, spanEnd:hx+hw, side:1 },
+    { vertical:true,  fixed:hx-1,  spanStart:hz, spanEnd:hz+hh, side:2 },
+    { vertical:true,  fixed:hx+hw, spanStart:hz, spanEnd:hz+hh, side:3 },
+  ];
+  let frontDoor = null;
+  perim.forEach(p=>{
+    const door = wallLineWithDoor(p.vertical, p.fixed, p.spanStart, p.spanEnd);
+    if (p.side === frontSide) frontDoor = { side:p.side, door, spanStart:p.spanStart, spanEnd:p.spanEnd };
+  });
+
+  /* --- furnish each room with a themed kit --- */
+  const occupied = Array.from({length:GRID}, ()=> new Array(GRID).fill(false));
+  placedItems.forEach(item=>{
+    for (let r=item.row-1;r<=item.row+item.W;r++){
+      for (let c=item.col-1;c<=item.col+item.L;c++){
+        if (c>=0&&c<GRID&&r>=0&&r<GRID) occupied[r][c] = true;
+      }
+    }
+  });
+  function findFreeSpotIn(rect, L, W){
+    for (let tries=0;tries<40;tries++){
+      const col = rect.col+1 + Math.floor(Math.random()*Math.max(1, rect.w-2-L));
+      const row = rect.row+1 + Math.floor(Math.random()*Math.max(1, rect.h-2-W));
+      let ok = col+L <= rect.col+rect.w-1 && row+W <= rect.row+rect.h-1;
+      for (let r=row;r<row+W && ok;r++){
+        for (let c=col;c<col+L && ok;c++){
+          if (occupied[r][c]) ok = false;
+        }
+      }
+      if (ok) return { col, row };
+    }
+    return null;
+  }
+  function markOcc(col,row,L,W){
+    for (let r=row-1;r<=row+W;r++) for (let c=col-1;c<=col+L;c++) if (c>=0&&c<GRID&&r>=0&&r<GRID) occupied[r][c] = true;
+  }
+
+  const ROOM_KITS = [
+    { name:'bedroom', items:['bed','cabinet','light'] },
+    { name:'kitchen', items:['counter','counter','fridge','cabinet','light'] },
+    { name:'living',  items:['sofa','table','light','window'] },
+    { name:'dining',  items:['table','chair','chair','chair','light'] },
+  ];
+  let kitchenRoom = null;
+  rooms.forEach(room=>{
+    const kit = ROOM_KITS[Math.floor(Math.random()*ROOM_KITS.length)];
+    if (kit.name === 'kitchen' && !kitchenRoom) kitchenRoom = room;
+    kit.items.forEach(type=>{
+      const def = ITEM_DEFS[type];
+      const rot = [0,90,180,270][Math.floor(Math.random()*4)];
+      const fl = (rot===90||rot===270) ? def.W : def.L;
+      const fw = (rot===90||rot===270) ? def.L : def.W;
+      const spot = findFreeSpotIn(room, fl, fw);
+      if (!spot) return;
+      const item = { id: uid++, type, col:spot.col, row:spot.row, L:def.L, W:def.W, H:def.H, rot };
+      refreshItemMesh(item);
+      placedItems.push(item);
+      markOcc(spot.col, spot.row, fl, fw);
+    });
+  });
+
+  /* a person or two wandering the house */
+  const humanCount = 1 + Math.floor(Math.random()*3);
+  for (let i=0;i<humanCount;i++){
+    const room = rooms[Math.floor(Math.random()*rooms.length)];
+    const spot = findFreeSpotIn(room, 1, 1);
+    if (!spot) continue;
+    placeHumanMesh(spot.col, spot.row);
+    markOcc(spot.col, spot.row, 1, 1);
+  }
+
+  /* the trap goes in the kitchen if this house has one — food draws rats — else a random room */
+  const goalRoom = kitchenRoom || rooms[Math.floor(Math.random()*rooms.length)];
+  const goalSpot = findFreeSpotIn(goalRoom, 1, 1) || { col: Math.floor(goalRoom.col+goalRoom.w/2), row: Math.floor(goalRoom.row+goalRoom.h/2) };
+  placeGoalMarker(goalSpot.col, goalSpot.row);
+
+  /* entrance sits just outside the front door, so the rat visibly walks in through it */
+  let ec, er;
+  const mid = frontDoor && frontDoor.door
+    ? Math.round((frontDoor.door.start+frontDoor.door.end)/2)
+    : Math.round((frontDoor.spanStart+frontDoor.spanEnd)/2);
+  if (frontDoor.side === 0){ ec = mid; er = hz-2; }
+  else if (frontDoor.side === 1){ ec = mid; er = hz+hh+1; }
+  else if (frontDoor.side === 2){ er = mid; ec = hx-2; }
+  else { er = mid; ec = hx+hw+1; }
+  manualEntrance = { c: clamp(ec,0,GRID-1), r: clamp(er,0,GRID-1) };
+  randomizeEntrance = false;
+  document.getElementById('toggle-randomize').checked = false;
+
+  rebuildGrids();
+  recomputeRoute(true);
+  refreshEditorLists();
+  scheduleAutosave();
+  logEvent(`Random stimulation — generated a ${rooms.length}-room home layout`);
+  enterPhase(PHASE.IDLE);
+}
+document.getElementById('btn-random-stim').addEventListener('click', randomStimulation);
+
+/* ============ ROOM SCAN IMPORT — build real furniture/walls from a RoomPlan .json,
+   or drop in the raw .glb mesh as a visual-only reference. Both read the file
+   locally via the File API; nothing is ever uploaded. ============ */
+const ROOMPLAN_TYPE_MAP = {
+  bed: 'bed', sofa: 'sofa', chair: 'chair', table: 'table',
+  refrigerator: 'fridge', storage: 'cabinet', stove: 'counter',
+  oven: 'counter', sink: 'counter', television: null,
+  toilet: null, bathtub: null, stairs: null, fireplace: null, dishwasher: null, washerDryer: null,
+};
+function matrixTranslation(t){ return { x:t[12], z:t[14] }; }
+/* RoomPlan walls are near axis-aligned in practice — compare the local
+   "length" axis against world X vs Z to decide the wall's run direction. */
+function wallIsHorizontal(t){ return Math.abs(t[0]) >= Math.abs(t[2]); }
+
+function importScanJSON(file){
+  const status = document.getElementById('scan-status');
+  status.textContent = 'Reading scan…';
+  file.text().then(importScanJSONText);
+}
+
+/* Core import logic, split out from file-reading so it can be called two
+   ways: from the browser file picker above (importScanJSON), or directly
+   by a native host app embedding this page in a WKWebView (see
+   importScanJSONBase64 below) — same result either way. */
+function importScanJSONText(text){
+  const status = document.getElementById('scan-status');
+  let room;
+  try { room = JSON.parse(text); } catch(e){ status.textContent = 'Could not parse that JSON file.'; return; }
+
+    deselectItem();
+    for (let i=placedItems.length-1;i>=0;i--){
+      if (ITEM_DEFS[placedItems[i].type].cat === 'furniture'){
+        roomGroup.remove(placedItems[i].mesh);
+        placedItems.splice(i,1);
+      }
+    }
+    humanItems.forEach(h=> roomGroup.remove(h.mesh));
+    humanItems.length = 0;
+
+    const walls = room.walls || [], doors = room.doors || [], windows = room.windows || [], objects = room.objects || [];
+    const allPts = [...walls, ...doors, ...windows, ...objects].map(s=> matrixTranslation(s.transform));
+    if (!allPts.length){ status.textContent = 'Scan file has no walls/objects to import.'; return; }
+    const minX = Math.min(...allPts.map(p=>p.x)), maxX = Math.max(...allPts.map(p=>p.x));
+    const minZ = Math.min(...allPts.map(p=>p.z)), maxZ = Math.max(...allPts.map(p=>p.z));
+    const MARGIN = 3;
+    const availSpan = (GRID - MARGIN*2) * CELL;
+    const spanX = Math.max(0.5, maxX-minX), spanZ = Math.max(0.5, maxZ-minZ);
+    /* Scale to FILL the available grid span, not just shrink to fit it — a
+       small real room should still make full use of the 36x36x36 grid
+       rather than sitting tiny inside it with no room for furniture. */
+    const scale = Math.min(availSpan/spanX, availSpan/spanZ);
+    const toCol = x => clamp(Math.round(MARGIN + (x-minX)*scale/CELL), 0, GRID-1);
+    const toRow = z => clamp(Math.round(MARGIN + (z-minZ)*scale/CELL), 0, GRID-1);
+    const toUnits = meters => Math.max(1, Math.round(meters*scale/CELL));
+
+    let wallCount = 0;
+    walls.forEach(w=>{
+      const pos = matrixTranslation(w.transform);
+      const [width,height,thickness] = w.dimensions || [1,2.4,0.1];
+      const horizontal = wallIsHorizontal(w.transform);
+      const lenUnits = toUnits(width), thickUnits = Math.max(1, toUnits(thickness));
+      const col = horizontal ? clamp(toCol(pos.x)-Math.floor(lenUnits/2), 0, GRID-lenUnits) : toCol(pos.x);
+      const row = horizontal ? toRow(pos.z) : clamp(toRow(pos.z)-Math.floor(lenUnits/2), 0, GRID-lenUnits);
+      const def = ITEM_DEFS.wall;
+      const item = horizontal
+        ? { id: uid++, type:'wall', col, row, L:lenUnits, W:thickUnits, H:def.H, rot:0 }
+        : { id: uid++, type:'wall', col, row, L:thickUnits, W:lenUnits, H:def.H, rot:0 };
+      refreshItemMesh(item);
+      placedItems.push(item);
+      wallCount++;
+    });
+
+    let objCount = 0, fridgePos = null;
+    objects.forEach(o=>{
+      const localType = ROOMPLAN_TYPE_MAP[o.category];
+      if (!localType) return;
+      const pos = matrixTranslation(o.transform);
+      const def = ITEM_DEFS[localType];
+      /* Use the object's real scanned dimensions, not the generic template
+         size — a chair keeps looking like the chair that was actually
+         scanned, not a fixed placeholder footprint. */
+      const [ow, oh, od] = o.dimensions || [def.L*CELL, def.H*CELL, def.W*CELL];
+      const Lunits = clamp(toUnits(ow), 1, 10);
+      const Wunits = clamp(toUnits(od), 1, 10);
+      const Hunits = clamp(toUnits(oh), 1, 10);
+      const col = clamp(toCol(pos.x), 0, GRID-Lunits);
+      const row = clamp(toRow(pos.z), 0, GRID-Wunits);
+      const item = { id: uid++, type:localType, col, row, L:Lunits, W:Wunits, H:Hunits, rot:0 };
+      refreshItemMesh(item);
+      placedItems.push(item);
+      objCount++;
+      if (localType === 'fridge') fridgePos = { c:col, r:row };
+    });
+
+    /* front door -> entrance, just outside the doorway */
+    if (doors.length){
+      const d = doors[0];
+      const pos = matrixTranslation(d.transform);
+      const horizontal = wallIsHorizontal(d.transform);
+      manualEntrance = horizontal
+        ? { c: toCol(pos.x), r: clamp(toRow(pos.z)+2, 0, GRID-1) }
+        : { c: clamp(toCol(pos.x)+2, 0, GRID-1), r: toRow(pos.z) };
+      randomizeEntrance = false;
+      document.getElementById('toggle-randomize').checked = false;
+    }
+    /* trap near the fridge if the scan had one — otherwise leave the goal where it is */
+    if (fridgePos) placeGoalMarker(fridgePos.c, fridgePos.r);
+
+    rebuildGrids();
+    recomputeRoute(true);
+    refreshEditorLists();
+    scheduleAutosave();
+    status.textContent = `Imported ${wallCount} wall segments and ${objCount} objects from the scan.`;
+    logEvent(`Room scan imported — ${wallCount} walls, ${objCount} objects`);
+    enterPhase(PHASE.IDLE);
+
+    /* Tell a native host app (iOS WKWebView), if this page is running inside
+       one — harmless no-op in a normal browser tab. */
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge){
+      window.webkit.messageHandlers.nativeBridge.postMessage({ type:'scanImported', walls:wallCount, objects:objCount });
+    }
+}
+window.importScanJSON = importScanJSON;
+window.importScanJSONText = importScanJSONText;
+
+/* Entry point for native code: base64-encoded JSON in, fully decoded and
+   imported. Base64 sidesteps every string-escaping hazard of injecting a
+   large JSON blob through evaluateJavaScript() from Swift. */
+window.importScanJSONBase64 = function(b64){
+  try {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    const text = new TextDecoder('utf-8').decode(bytes);
+    importScanJSONText(text);
+  } catch(e){
+    const status = document.getElementById('scan-status');
+    if (status) status.textContent = 'Failed to decode scan data from the app.';
+    console.error(e);
+  }
+};
+
+
+const scanGLTFLoader = new GLTFLoader();
+let scanOverlayMesh = null;
+function importScanGLB(file){
+  const status = document.getElementById('scan-status');
+  status.textContent = 'Loading mesh…';
+  const url = URL.createObjectURL(file);
+  scanGLTFLoader.load(url, gltf=>{
+    if (scanOverlayMesh) roomGroup.remove(scanOverlayMesh);
+    scanOverlayMesh = gltf.scene;
+    scanOverlayMesh.traverse(o=>{ if (o.isMesh){ o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.55; } });
+    const box = new THREE.Box3().setFromObject(scanOverlayMesh);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    const MARGIN = 3;
+    const availSpan = (GRID - MARGIN*2) * CELL;
+    const scale = Math.min(availSpan/Math.max(0.5,size.x), availSpan/Math.max(0.5,size.z));
+    scanOverlayMesh.scale.setScalar(scale);
+    scanOverlayMesh.position.sub(center.multiplyScalar(scale));
+    scanOverlayMesh.position.x += -WORLD/2 + MARGIN*CELL + (size.x*scale)/2;
+    scanOverlayMesh.position.z += -WORLD/2 + MARGIN*CELL + (size.z*scale)/2;
+    scanOverlayMesh.position.y = 0;
+    roomGroup.add(scanOverlayMesh);
+    status.textContent = `Mesh overlay loaded (${size.x.toFixed(1)}m × ${size.z.toFixed(1)}m) — reference only, not editable or pathfinding-aware.`;
+    URL.revokeObjectURL(url);
+  }, undefined, err=>{
+    console.error(err);
+    status.textContent = 'Failed to load — check it is a valid .glb/.gltf.';
+  });
+}
+
+document.getElementById('btn-import-scan-json').addEventListener('click', ()=> document.getElementById('scan-json-input').click());
+document.getElementById('btn-import-scan-glb').addEventListener('click', ()=> document.getElementById('scan-glb-input').click());
+document.getElementById('scan-json-input').addEventListener('change', e=>{ if (e.target.files[0]) importScanJSON(e.target.files[0]); e.target.value=''; });
+document.getElementById('scan-glb-input').addEventListener('change', e=>{ if (e.target.files[0]) importScanGLB(e.target.files[0]); e.target.value=''; });
+
+function shapeOptionsHTML(sel){
+  const opts = [['concentric','Concentric'],['arc','Arc'],['spiky','Spiky'],['rattle','Rattle']];
+  return opts.map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${l}</option>`).join('');
+}
+function renderSoundTab(){
+  const el = document.getElementById('sound-tab-content');
+  el.innerHTML = PREDATORS.map(p=>`
+    <div class="predator-card ${p.id===activePredatorId?'active':''}" data-pred="${p.id}">
+      <div class="predator-head"><span>${p.label}</span>
+        <button class="small ${p.id===activePredatorId?'active':''}" data-use="${p.id}">${p.id===activePredatorId?'Active':'Use'}</button>
+      </div>
+      <div class="predator-row"><label>Wave shape</label><select data-shape="${p.id}">${shapeOptionsHTML(p.shape)}</select></div>
+      <div class="predator-row"><label>Frequency (Hz)</label><span class="freqs">
+        <input type="number" data-freqlow="${p.id}" value="${p.freqLow}" />–
+        <input type="number" data-freqhigh="${p.id}" value="${p.freqHigh}" />
+      </span></div>
+      <div class="predator-row"><label>Base effectiveness <span data-effval="${p.id}">${p.baseEff}%</span></label>
+        <input type="range" min="10" max="95" value="${p.baseEff}" data-eff="${p.id}" style="width:80px" />
+      </div>
+    </div>`).join('');
+}
+renderSoundTab();
+document.getElementById('sound-tab-content').addEventListener('click', e=>{
+  const useId = e.target.getAttribute('data-use');
+  if (useId){ activePredatorId = useId; renderSoundTab(); document.getElementById('d-sound').textContent = activeDef().label; scheduleAutosave(); }
+});
+document.getElementById('sound-tab-content').addEventListener('change', e=>{
+  const id = e.target.getAttribute('data-shape') || e.target.getAttribute('data-freqlow') || e.target.getAttribute('data-freqhigh');
+  const p = PREDATORS.find(pp=>pp.id===id);
+  if (!p) return;
+  if (e.target.hasAttribute('data-shape')) p.shape = e.target.value;
+  if (e.target.hasAttribute('data-freqlow')) p.freqLow = parseFloat(e.target.value)||0;
+  if (e.target.hasAttribute('data-freqhigh')) p.freqHigh = parseFloat(e.target.value)||0;
+  scheduleAutosave();
+});
+document.getElementById('sound-tab-content').addEventListener('input', e=>{
+  const id = e.target.getAttribute('data-eff');
+  if (!id) return;
+  const p = PREDATORS.find(pp=>pp.id===id);
+  p.baseEff = parseFloat(e.target.value);
+  document.querySelector(`[data-effval="${id}"]`).textContent = `${p.baseEff}%`;
+  scheduleAutosave();
+});
+
+/* ============ TOP BAR CONTROLS ============ */
+document.getElementById('toggle-rotate').addEventListener('change', e=>{ controls.autoRotate = e.target.checked; });
+document.getElementById('toggle-randomize').addEventListener('change', e=>{ randomizeEntrance = e.target.checked; scheduleAutosave(); });
+document.getElementById('btn-set-entrance').addEventListener('click', e=>{
+  pickingEntrance = !pickingEntrance;
+  e.target.classList.toggle('active', pickingEntrance);
+});
+document.getElementById('speed-select').addEventListener('change', e=>{ speedMult = parseFloat(e.target.value); });
+document.getElementById('btn-restart').addEventListener('click', ()=> enterPhase(PHASE.IDLE));
+
+/* ============ ACCOUNTS — client-side only (localStorage), lets different browsers/
+   users on this device keep separate saved space setups. Not a real secure backend. ============ */
+const LS_USERS = 'ratgrid_users_v1';
+const LS_CURRENT = 'ratgrid_current_user_v1';
+const LS_SETUP_PREFIX = 'ratgrid_setup_v1_';
+
+function loadUsers(){
+  try { return JSON.parse(localStorage.getItem(LS_USERS)) || {}; } catch(e){ return {}; }
+}
+function saveUsers(users){ try { localStorage.setItem(LS_USERS, JSON.stringify(users)); } catch(e){ /* storage unavailable */ } }
+
+let currentUser = null;
+let saveTimer = null;
+
+function serializeSetup(){
+  return {
+    placedItems: placedItems.map(it=>({ type:it.type, col:it.col, row:it.row, L:it.L, W:it.W, H:it.H, rot:it.rot||0 })),
+    humanItems: humanItems.map(it=>({ col:it.col, row:it.row })),
+    activePredatorId,
+    predators: PREDATORS.map(p=>({ id:p.id, shape:p.shape, freqLow:p.freqLow, freqHigh:p.freqHigh, baseEff:p.baseEff })),
+    manualEntrance, randomizeEntrance,
+  };
+}
+function clearScene(){
+  deselectItem();
+  placedItems.forEach(it=> roomGroup.remove(it.mesh));
+  placedItems.length = 0;
+  humanItems.forEach(it=> roomGroup.remove(it.mesh));
+  humanItems.length = 0;
+}
+function applySetup(data){
+  clearScene();
+  (data.placedItems||[]).forEach(d=>{
+    if (!ITEM_DEFS[d.type]) return;
+    const item = { id: uid++, type:d.type, col:d.col, row:d.row, L:d.L, W:d.W, H:d.H, rot:d.rot||0 };
+    refreshItemMesh(item);
+    placedItems.push(item);
+  });
+  (data.humanItems||[]).forEach(d=> placeHumanMesh(d.col, d.row));
+  (data.predators||[]).forEach(saved=>{
+    const p = PREDATORS.find(pp=>pp.id===saved.id);
+    if (p){ p.shape=saved.shape; p.freqLow=saved.freqLow; p.freqHigh=saved.freqHigh; p.baseEff=saved.baseEff; }
+  });
+  if (data.activePredatorId) activePredatorId = data.activePredatorId;
+  if (typeof data.randomizeEntrance === 'boolean'){
+    randomizeEntrance = data.randomizeEntrance;
+    document.getElementById('toggle-randomize').checked = randomizeEntrance;
+  }
+  manualEntrance = data.manualEntrance || null;
+  rebuildGrids();
+  recomputeRoute(true);
+  refreshEditorLists();
+  renderSoundTab();
+  document.getElementById('d-sound').textContent = activeDef().label;
+}
+/* shared with placeHuman() but skips the autosave/rebuild side-effects, for bulk loading */
+function placeHumanMesh(col,row){
+  const item = { id: uid++, col, row };
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.34,10), new THREE.MeshStandardMaterial({ color:0x334155, roughness:0.8 }));
+  body.position.y = 0.17 + CELL*0.02;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.065,12,10), new THREE.MeshStandardMaterial({ color:0x334155, roughness:0.8 }));
+  head.position.y = 0.4;
+  group.add(body); group.add(head);
+  const center = cellCenter(col,row);
+  group.position.set(center.x, 0, center.z);
+  roomGroup.add(group);
+  item.mesh = group;
+  humanItems.push(item);
+}
+function scheduleAutosave(){
+  if (!currentUser) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=> saveCurrentSetup(true), 900);
+}
+function saveCurrentSetup(silent){
+  if (!currentUser) return;
+  try {
+    localStorage.setItem(LS_SETUP_PREFIX + currentUser, JSON.stringify(serializeSetup()));
+    const el = document.getElementById('account-save-status');
+    if (el) el.textContent = `Saved · ${fmtClock(simSeconds)}`;
+    if (!silent) logEvent(`Scene setup saved to account ${currentUser}`);
+  } catch(e){
+    if (!silent) logEvent('Save failed (browser storage unavailable or full)');
+  }
+}
+function loadSetupFor(username){
+  const raw = localStorage.getItem(LS_SETUP_PREFIX + username);
+  if (raw){
+    try { applySetup(JSON.parse(raw)); } catch(e){ clearScene(); rebuildGrids(); recomputeRoute(true); refreshEditorLists(); }
+  } else {
+    clearScene(); rebuildGrids(); recomputeRoute(true); refreshEditorLists();
+  }
+}
+function setAccountUI(){
+  const loggedIn = !!currentUser;
+  document.getElementById('account-logged-out').classList.toggle('hidden', loggedIn);
+  document.getElementById('account-logged-in').classList.toggle('hidden', !loggedIn);
+  document.getElementById('acc-current-name').textContent = currentUser || '—';
+  document.getElementById('account-status').textContent = loggedIn ? `👤 ${currentUser}` : '👤 Guest';
+  document.getElementById('btn-save-setup').classList.toggle('hidden', !loggedIn);
+  document.getElementById('btn-account').textContent = loggedIn ? 'Account' : 'Log in';
+}
+
+document.getElementById('btn-account').addEventListener('click', ()=> document.getElementById('account-panel').classList.toggle('open'));
+document.getElementById('account-close').addEventListener('click', ()=> document.getElementById('account-panel').classList.remove('open'));
+document.getElementById('btn-save-setup').addEventListener('click', ()=> saveCurrentSetup(false));
+document.getElementById('btn-manual-save').addEventListener('click', ()=> saveCurrentSetup(false));
+
+document.getElementById('btn-register').addEventListener('click', ()=>{
+  const u = document.getElementById('acc-username').value.trim();
+  const p = document.getElementById('acc-password').value;
+  const msg = document.getElementById('account-msg');
+  if (!u || !p){ msg.textContent = 'Enter a username and password'; return; }
+  const users = loadUsers();
+  if (users[u]){ msg.textContent = 'That account already exists — log in instead'; return; }
+  users[u] = p;
+  saveUsers(users);
+  currentUser = u;
+  try { localStorage.setItem(LS_CURRENT, u); } catch(e){}
+  msg.textContent = '';
+  setAccountUI();
+  clearScene(); rebuildGrids(); recomputeRoute(true); refreshEditorLists();
+  saveCurrentSetup(true);
+  document.getElementById('account-panel').classList.remove('open');
+  logEvent(`Registered and logged in as ${u}`);
+});
+document.getElementById('btn-login').addEventListener('click', ()=>{
+  const u = document.getElementById('acc-username').value.trim();
+  const p = document.getElementById('acc-password').value;
+  const msg = document.getElementById('account-msg');
+  const users = loadUsers();
+  if (!users[u]){ msg.textContent = 'No such account — register first'; return; }
+  if (users[u] !== p){ msg.textContent = 'Incorrect password'; return; }
+  currentUser = u;
+  try { localStorage.setItem(LS_CURRENT, u); } catch(e){}
+  msg.textContent = '';
+  setAccountUI();
+  loadSetupFor(u);
+  document.getElementById('account-panel').classList.remove('open');
+  logEvent(`Logged in as ${u} — loaded saved scene`);
+});
+document.getElementById('btn-logout').addEventListener('click', ()=>{
+  currentUser = null;
+  try { localStorage.removeItem(LS_CURRENT); } catch(e){}
+  setAccountUI();
+  clearScene(); rebuildGrids(); recomputeRoute(true); refreshEditorLists();
+  logEvent('Logged out — scene reset to guest mode');
+});
+
+/* restore session on load, if a browser account was already logged in */
+(function restoreSession(){
+  let saved = null;
+  try { saved = localStorage.getItem(LS_CURRENT); } catch(e){}
+  if (saved && loadUsers()[saved]){
+    currentUser = saved;
+    setAccountUI();
+    loadSetupFor(saved);
+  } else {
+    setAccountUI();
+  }
+})();
+
+/* ============ ANIMATION LOOP ============ */
+const clock = new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  const dt = Math.min(0.05, clock.getDelta()) * speedMult;
+  simSeconds += dt;
+  document.getElementById('clock').textContent = fmtClock(simSeconds);
+  document.getElementById('d-visited').textContent = visitedCount;
+
+  controls.update();
+  updateTrail(simSeconds);
+  updateWaves(dt);
+  updateImpacts(dt);
+
+  if (deterrenceActive && ratGroup.visible){
+    const dir = computeRatForwardDir();
+    const originPos = ratGroup.position.clone().addScaledVector(dir, -CELL*2.2);
+    originPos.y = CELL*2;
+    const aimVec = new THREE.Vector3().subVectors(originPos, speakerPos);
+    if (aimVec.lengthSq() > 0.0001){
+      const targetAngle = Math.atan2(aimVec.x, aimVec.z);
+      speakerRig.rotation.y += shortestAngleDiff(speakerRig.rotation.y, targetAngle) * Math.min(1, dt*4);
+    }
+    updateRangeCone(originPos, dir, activeDef().color);
+    waveSpawnTimer -= dt;
+    if (waveSpawnTimer <= 0){ spawnWave(activeDef(), originPos, dir); waveSpawnTimer = activeDef().spawnInterval; }
+  } else {
+    speakerRig.rotation.y += shortestAngleDiff(speakerRig.rotation.y, 0) * Math.min(1, dt*2);
+    rangeCone.visible = false;
+  }
+
+  phaseTime += dt;
+  routeRecalcTimer -= dt;
+
+  switch (phase){
+    case PHASE.IDLE:
+      if (phaseTime > 2.0) enterPhase(PHASE.TRACKING);
+      break;
+    case PHASE.TRACKING: {
+      const moved = updateRat(dt);
+      if (moved){
+        const risk = costGrid[rat.row][rat.col] > 6;
+        if (risk){
+          lowRiskStreak = 0;
+          if (!deterrenceActive) activateDeterrence();
+        } else {
+          lowRiskStreak++;
+          if (deterrenceActive && lowRiskStreak >= 3) deactivateDeterrence();
+        }
+        if (routeRecalcTimer <= 0){ recomputeRoute(false); routeRecalcTimer = 1.1; }
+      }
+      if (rat.col === GOAL_CELL.c && rat.row === GOAL_CELL.r && rat.stepT >= 1){
+        if (deterrenceActive) deactivateDeterrence();
+        enterPhase(PHASE.CAPTURED);
+      }
+      break;
+    }
+    case PHASE.CAPTURED:
+      if (phaseTime > 2.2) enterPhase(PHASE.COOLDOWN);
+      break;
+    case PHASE.COOLDOWN:
+      if (phaseTime > 1.2) enterPhase(PHASE.IDLE);
+      break;
+  }
+
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+
+resize();
+tick();
+</script>
+</body>
+</html>
